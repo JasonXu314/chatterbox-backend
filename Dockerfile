@@ -15,4 +15,6 @@ RUN yarn build
 
 EXPOSE 5000
 
+RUN mysqld
+
 CMD ["yarn", "start:prod"]
