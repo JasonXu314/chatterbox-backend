@@ -11,6 +11,4 @@ COPY . .
 
 RUN yarn build
 
-RUN mysqld
-
 CMD ["yarn", "start:prod"]
