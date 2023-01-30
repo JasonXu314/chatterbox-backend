@@ -8,6 +8,11 @@ import { AppUser } from './users/User.model';
 export class AppController {
 	constructor(private readonly dbService: DBService) {}
 
+	@Get('/')
+	async getStatus(): Promise<string> {
+		return 'ok';
+	}
+
 	@Get('/users')
 	async getUsers(): Promise<AppUser[]> {
 		const users = await this.dbService.getUsers();
