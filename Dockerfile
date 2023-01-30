@@ -9,11 +9,7 @@ RUN yarn install
 
 COPY . .
 
-ENV PORT=5000
-
 RUN yarn build
-
-EXPOSE 5000
 
 RUN mysqld
 
