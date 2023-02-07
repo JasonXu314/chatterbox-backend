@@ -1,18 +1,38 @@
-import { BadRequestException, Body, Controller, Get, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { createHash } from 'crypto';
-import { DBService } from './db.service';
+import { DBService } from './db/db.service';
+import { GatewayService } from './gateway/gateway.service';
 import { CreateUserDTO, LoginDTO } from './users/User.dto';
 import { AppUser } from './users/User.model';
 
 @Controller()
 export class AppController {
-	constructor(private readonly dbService: DBService) {}
+	constructor(private readonly dbService: DBService, private readonly gatewayService: GatewayService) {}
 
 	@Get('/users')
-	async getUsers(): Promise<AppUser[]> {
-		const users = await this.dbService.getUsers();
+	async getUsers(@Query('id') id?: number): Promise<AppUser[] | AppUser> {
+		const users = await this.dbService.getAppUsers(id);
 
-		return users.map(({ id, username }) => ({ id, username }));
+		if (id !== undefined) {
+			if (users.length === 0) {
+				throw new NotFoundException('User not found!');
+			}
+
+			return users[0];
+		} else {
+			return users;
+		}
+	}
+
+	@Get('/users/:id')
+	async getUser(@Param('id') id?: number): Promise<AppUser> {
+		const users = await this.dbService.getAppUsers(id);
+
+		if (users.length === 0) {
+			throw new NotFoundException('User not found!');
+		}
+
+		return users[0];
 	}
 
 	@Post('/signup')
@@ -23,7 +43,7 @@ export class AppController {
 	}
 
 	@Post('/login')
-	async login(@Body() loginInfo: LoginDTO): Promise<AppUser> {
+	async login(@Body() loginInfo: LoginDTO): Promise<{ user: AppUser; wsUUID: string }> {
 		const user = await this.dbService.getUserByName(loginInfo.username);
 
 		if (!user) {
@@ -38,7 +58,7 @@ export class AppController {
 			throw new BadRequestException('Incorrect username or password!');
 		}
 
-		return { id: user.id, username: user.username };
+		return { user: { id: user.id, username: user.username }, wsUUID: this.gatewayService.allocateUUID(user) };
 	}
 }
 

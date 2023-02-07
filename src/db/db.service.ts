@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { Knex, knex } from 'knex';
-import { CreateUserDTO } from './users/User.dto';
-import { User } from './users/User.model';
+import { CreateUserDTO } from '../users/User.dto';
+import { AppUser, User } from '../users/User.model';
 
 @Injectable()
 export class DBService {
@@ -33,9 +33,36 @@ export class DBService {
 						table.string('salt').notNullable();
 					});
 				}
+			}),
+			db.schema.createViewOrReplace('user_view', (view) => {
+				view.columns(['id', 'username']);
+				view.as(db('users').select('id', 'username'));
+			}),
+			db.schema.hasTable('channels').then((exists) => {
+				if (!exists) {
+					return db.schema
+						.createTable('channels', (table) => {
+							table.increments('id').notNullable();
+							table.string('name').notNullable().unique();
+						})
+						.then(() => {
+							return db('channels').insert({ name: 'public' }).then();
+						});
+				}
+			}),
+			db.schema.hasTable('messages').then((exists) => {
+				if (!exists) {
+					return db.schema.createTable('messages', (table) => {
+						table.increments('id').notNullable();
+						table.integer('channelId').notNullable().references('channels.id');
+						table.integer('authorId').notNullable().references('users.id');
+						table.string('content').notNullable();
+						table.timestamp('createdAt').notNullable().defaultTo(db.fn.now());
+					});
+				}
 			})
 		]).then(() => {
-			this._logger.log('db initialized');
+			this._logger.log('DB initialized');
 			return db;
 		});
 	}
@@ -47,6 +74,16 @@ export class DBService {
 			return db<User>('users').where({ id });
 		} else {
 			return db<User>('users');
+		}
+	}
+
+	public async getAppUsers(id?: number | undefined): Promise<AppUser[]> {
+		const db = await this._db;
+
+		if (id) {
+			return db<AppUser>('user_view').where({ id });
+		} else {
+			return db<AppUser>('user_view');
 		}
 	}
 
