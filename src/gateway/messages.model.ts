@@ -8,5 +8,6 @@ export type WSClaimMessage = {
 export type WSSendMessage = {
 	type: 'SEND';
 	message: string;
+	channelId: number;
 };
 

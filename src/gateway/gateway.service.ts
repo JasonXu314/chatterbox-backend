@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { DBService } from 'src/db/db.service';
-import { User } from 'src/users/User.model';
+import { User } from 'src/models/User.model';
 import { WebSocket } from 'ws';
 
 @Injectable()
@@ -16,6 +16,16 @@ export class GatewayService {
 		this._logger = new Logger('GatewayService');
 	}
 
+	public async getUser(socket: WebSocket): Promise<User | null> {
+		const userId = this._socketToUser.get(socket);
+
+		if (!userId) {
+			return null;
+		}
+
+		return this.dbService.getUserById(userId);
+	}
+
 	public allocateUUID(user: User): string {
 		const uuid = randomUUID();
 
@@ -23,10 +33,13 @@ export class GatewayService {
 
 		this._uuidToUser.set(uuid, user.id);
 
-		const interval = setTimeout(() => {
-			this._logger.log(`UUID ${uuid} for user ${user.username} has expired`);
-			this._uuidToUser.delete(uuid);
-		}, 5000);
+		const interval = setTimeout(
+			() => {
+				this._logger.log(`UUID ${uuid} for user ${user.username} has expired`);
+				this._uuidToUser.delete(uuid);
+			},
+			process.env.ENVIRONMENT === 'development' ? 30_000 : 5000
+		);
 
 		this._userIntervals.set(user.id, interval);
 

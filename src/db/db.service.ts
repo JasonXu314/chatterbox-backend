@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { Knex, knex } from 'knex';
-import { CreateUserDTO } from '../users/User.dto';
-import { AppUser, User } from '../users/User.model';
+import { Message } from 'src/models/Message.model';
+import { CreateUserDTO } from '../models/User.dto';
+import { PublicUser, User } from '../models/User.model';
 
 @Injectable()
 export class DBService {
@@ -26,12 +27,9 @@ export class DBService {
 		this._db = Promise.all([
 			db.schema.hasTable('users').then((exists) => {
 				if (!exists) {
-					return db.schema.createTable('users', (table) => {
-						table.increments('id').notNullable();
-						table.string('username').notNullable().unique();
-						table.string('password').notNullable();
-						table.string('salt').notNullable();
-					});
+					return db.schema.createTable('users', this.defineUsersTable);
+				} else {
+					return db.schema.table('users', this.defineUsersTable);
 				}
 			}),
 			db.schema.createViewOrReplace('user_view', (view) => {
@@ -77,20 +75,36 @@ export class DBService {
 		}
 	}
 
-	public async getAppUsers(id?: number | undefined): Promise<AppUser[]> {
+	public async getPublicUsers(id?: number | undefined): Promise<PublicUser[]> {
 		const db = await this._db;
 
 		if (id) {
-			return db<AppUser>('user_view').where({ id });
+			return db<PublicUser>('user_view').where({ id });
 		} else {
-			return db<AppUser>('user_view');
+			return db<PublicUser>('user_view');
 		}
+	}
+
+	public async getUserById(id: number): Promise<User | null> {
+		const db = await this._db;
+
+		const [user] = await db<User>('users').where({ id });
+
+		return user || null;
 	}
 
 	public async getUserByName(username: string): Promise<User | null> {
 		const db = await this._db;
 
 		const [user] = await db<User>('users').where({ username });
+
+		return user || null;
+	}
+
+	public async getUserByToken(token: string): Promise<User | null> {
+		const db = await this._db;
+
+		const [user] = await db<User>('users').where({ token });
 
 		return user || null;
 	}
@@ -102,14 +116,45 @@ export class DBService {
 		const hashedPassword = createHash('sha256')
 			.update(user.password + salt)
 			.digest('hex');
+		const token = randomBytes(32).toString('hex');
 
-		const newUser: Omit<User, 'id'> = { ...user, password: hashedPassword, salt };
+		const newUser: Omit<User, 'id'> = { ...user, password: hashedPassword, salt, token };
 
 		return db.transaction(async (trx) => {
 			const [id] = await trx.insert(newUser).into('users');
 
 			return { ...newUser, id };
 		});
+	}
+
+	public async getMessages(channelId: number): Promise<Message[]> {
+		const db = await this._db;
+
+		return db<Message>('messages').where({ channelId });
+	}
+
+	public async createMessage(author: User, content: string, channelId: number): Promise<Message> {
+		const db = await this._db;
+
+		const newMessage: Omit<Message, 'id' | 'createdAt'> = {
+			channelId,
+			authorId: author.id,
+			content
+		};
+
+		return db.transaction(async (trx) => {
+			const [id, createdAt] = await trx.insert(newMessage).into('messages').returning(['id', 'createdAt']);
+
+			return { ...newMessage, id, createdAt };
+		});
+	}
+
+	private defineUsersTable(table: Knex.CreateTableBuilder): void {
+		table.increments('id').notNullable();
+		table.string('username').notNullable().unique();
+		table.string('password').notNullable();
+		table.string('salt').notNullable();
+		table.string('token').notNullable().unique();
 	}
 }
 
