@@ -29,23 +29,18 @@ export class DBService {
 				if (!exists) {
 					return db.schema.createTable('users', this.defineUsersTable);
 				} else {
-					return db.schema.table('users', this.defineUsersTable);
+					return db.transaction(async () => {
+						await db.schema.dropTable('users');
+						return db.schema.createTable('users', this.defineUsersTable);
+					});
 				}
-			}),
-			db.schema.createViewOrReplace('user_view', (view) => {
-				view.columns(['id', 'username']);
-				view.as(db('users').select('id', 'username'));
 			}),
 			db.schema.hasTable('channels').then((exists) => {
 				if (!exists) {
-					return db.schema
-						.createTable('channels', (table) => {
-							table.increments('id').notNullable();
-							table.string('name').notNullable().unique();
-						})
-						.then(() => {
-							return db('channels').insert({ name: 'public' }).then();
-						});
+					return db.schema.createTable('channels', (table) => {
+						table.increments('id').notNullable();
+						table.string('name').notNullable().unique();
+					});
 				}
 			}),
 			db.schema.hasTable('messages').then((exists) => {
@@ -59,10 +54,20 @@ export class DBService {
 					});
 				}
 			})
-		]).then(() => {
-			this._logger.log('DB initialized');
-			return db;
-		});
+		])
+			.then(() =>
+				Promise.all([
+					db.schema.createViewOrReplace('user_view', (view) => {
+						view.columns(['id', 'username']);
+						view.as(db('users').select('id', 'username'));
+					}),
+					db('channels').insert({ name: 'public' })
+				])
+			)
+			.then(() => {
+				this._logger.log('DB initialized');
+				return db;
+			});
 	}
 
 	public async getUsers(id?: number | undefined): Promise<User[]> {
@@ -143,9 +148,9 @@ export class DBService {
 		};
 
 		return db.transaction(async (trx) => {
-			const [id, createdAt] = await trx.insert(newMessage).into('messages').returning(['id', 'createdAt']);
+			const [id] = await trx.insert(newMessage).into('messages');
 
-			return { ...newMessage, id, createdAt };
+			return trx<Message>('messages').where({ id }).first();
 		});
 	}
 

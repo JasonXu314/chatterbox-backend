@@ -39,12 +39,9 @@ Body {
 	password: string
 }
 Response {
-	user: {
-		id: number
-		username: string
-		token: string
-	}
-	wsUUID: string
+	id: number
+	username: string
+	token: string
 }
 ```
 

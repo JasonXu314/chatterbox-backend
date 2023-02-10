@@ -4,7 +4,7 @@ import { DBService } from './db/db.service';
 import { GatewayService } from './gateway/gateway.service';
 import { CreateMessageDTO } from './models/Message.dto';
 import { Message } from './models/Message.model';
-import { CreateUserDTO, LoginDTO, LoginResultDTO } from './models/User.dto';
+import { CreateUserDTO, LoginDTO } from './models/User.dto';
 import { AppUser, PublicUser } from './models/User.model';
 
 @Controller()
@@ -45,7 +45,7 @@ export class AppController {
 	}
 
 	@Post('/login')
-	async login(@Body() loginInfo: LoginDTO): Promise<LoginResultDTO> {
+	async login(@Body() loginInfo: LoginDTO): Promise<AppUser> {
 		const user = await this.dbService.getUserByName(loginInfo.username);
 
 		if (!user) {
@@ -60,18 +60,22 @@ export class AppController {
 			throw new BadRequestException('Incorrect username or password!');
 		}
 
-		return { user: { id: user.id, username: user.username, token: user.token }, wsUUID: this.gatewayService.allocateUUID(user) };
+		return { id: user.id, username: user.username, token: user.token };
 	}
 
 	@Post('/create-message')
-	async createMessagE(@Body() messageInfo: CreateMessageDTO): Promise<Message> {
+	async createMessage(@Body() messageInfo: CreateMessageDTO): Promise<Message> {
 		const author = await this.dbService.getUserByToken(messageInfo.token);
 
 		if (!author) {
 			throw new BadRequestException('Invalid token!');
 		}
 
-		return this.dbService.createMessage(author, messageInfo.content, messageInfo.channelId);
+		const newMessage = await this.dbService.createMessage(author, messageInfo.content, messageInfo.channelId);
+
+		this.gatewayService.broadcast({ type: 'MESSAGE', message: newMessage });
+
+		return newMessage;
 	}
 }
 

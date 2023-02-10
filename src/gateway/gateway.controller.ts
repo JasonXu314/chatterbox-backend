@@ -1,9 +1,9 @@
 import { Logger } from '@nestjs/common';
 import { OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway } from '@nestjs/websockets';
 import { DBService } from 'src/db/db.service';
-import { WebSocket } from 'ws';
+import { MessageEvent, WebSocket } from 'ws';
 import { GatewayService } from './gateway.service';
-import { WSClaimMessage, WSMessage } from './messages.model';
+import { InboundWSMessage, WSClaimMessage } from './messages.model';
 
 @WebSocketGateway()
 export class GatewayController implements OnGatewayConnection, OnGatewayDisconnect {
@@ -12,51 +12,74 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 	constructor(private readonly gatewayService: GatewayService, private readonly dbService: DBService) {}
 
 	public handleConnection(client: WebSocket) {
-		client.addEventListener(
-			'message',
-			async (evt) => {
-				const msg: WSMessage = JSON.parse(evt.data.toString());
+		let timeoutId: NodeJS.Timeout;
 
-				switch (msg.type) {
-					case 'CLAIM':
-						await this.authClient(client, msg);
-						break;
-					default:
-						client.close(4000, 'Invalid message type; must first send CLAIM message');
-						break;
-				}
-			},
-			{ once: true }
-		);
+		const listener = async (evt: MessageEvent) => {
+			const msg: InboundWSMessage = JSON.parse(evt.data.toString());
+
+			switch (msg.type) {
+				case 'CONNECT':
+					const success = await this.authClient(client, msg);
+
+					if (success) {
+						clearTimeout(timeoutId);
+					}
+
+					break;
+				default:
+					client.close(4000, 'Invalid message type; must first send CLAIM message');
+					break;
+			}
+		};
+
+		client.addEventListener('message', listener, { once: true });
+
+		timeoutId = setTimeout(() => {
+			client.close(4000, 'Timed out');
+		}, 5000);
 	}
 
-	private async authClient(client: WebSocket, claimMessage: WSClaimMessage): Promise<void> {
-		const success = await this.gatewayService.claimUUID(client, claimMessage.uuid);
+	private async authClient(client: WebSocket, connectMessage: WSClaimMessage): Promise<boolean> {
+		const user = await this.dbService.getUserByToken(connectMessage.token);
 
-		if (success) {
-			client.send(JSON.stringify({ type: 'CLAIM_SUCCESS' }));
+		if (!user) {
+			client.close(4000, 'Invalid Token');
+			return false;
+		} else {
+			this.gatewayService.addSocket(client, user);
+			client.send(JSON.stringify({ type: 'CONNECT_SUCCESS' }));
 
 			client.addEventListener('message', async (evt) => {
-				const msg: WSMessage = JSON.parse(evt.data.toString());
+				try {
+					const msg: InboundWSMessage = JSON.parse(evt.data.toString());
 
-				switch (msg.type) {
-					case 'SEND':
-						this.logger.log('sent message: ' + msg.message);
-						const author = await this.gatewayService.getUser(client);
-
-						if (author) {
-							const newMessage = this.dbService.createMessage(author, msg.message, msg.channelId);
-						} else {
-							client.close(5000, 'Socket not mapped to user');
-						}
-						break;
-					default:
-						client.close(4000, 'Invalid message type');
-						break;
+					await this.handleClientMessages(msg, client);
+				} catch (err) {
+					client.close(4000, 'Invalid message (messages must be in json format)');
 				}
 			});
-		} else {
-			client.close(4000, 'Invalid UUID');
+
+			return true;
+		}
+	}
+
+	private async handleClientMessages(msg: InboundWSMessage, client: WebSocket): Promise<void> {
+		switch (msg.type) {
+			case 'SEND':
+				const author = await this.gatewayService.getUser(client);
+				this.logger.log(`${author.username} sent message ${msg.message} in channel ${msg.channelId}`);
+
+				if (author) {
+					const newMessage = await this.dbService.createMessage(author, msg.message, msg.channelId);
+
+					this.gatewayService.broadcast({ type: 'MESSAGE', message: newMessage });
+				} else {
+					client.close(5000, 'Socket not mapped to user');
+				}
+				break;
+			default:
+				client.close(4000, 'Invalid message type');
+				break;
 		}
 	}
 
