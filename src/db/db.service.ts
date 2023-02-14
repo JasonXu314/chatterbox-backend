@@ -114,6 +114,14 @@ export class DBService {
 		return user || null;
 	}
 
+	public async getUserByEmail(email: string): Promise<User | null> {
+		const db = await this._db;
+
+		const [user] = await db<User>('users').where({ email });
+
+		return user || null;
+	}
+
 	public async createUser(user: CreateUserDTO): Promise<User> {
 		const db = await this._db;
 
@@ -160,6 +168,7 @@ export class DBService {
 		table.string('password').notNullable();
 		table.string('salt').notNullable();
 		table.string('token').notNullable().unique();
+		table.string('email').notNullable().unique();
 	}
 }
 

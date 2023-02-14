@@ -1,10 +1,11 @@
 export class CreateUserDTO {
+	email: string;
 	username: string;
 	password: string;
 }
 
 export class LoginDTO {
-	username: string;
+	email: string;
 	password: string;
 }
 

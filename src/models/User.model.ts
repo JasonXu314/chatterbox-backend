@@ -4,8 +4,9 @@ export class User {
 	password: string;
 	salt: string;
 	token: string;
+	email: string;
 }
 
-export type AppUser = Omit<User, 'password' | 'salt'>;
-export type PublicUser = Omit<User, 'password' | 'salt' | 'token'>;
+export type AppUser = Pick<User, 'id' | 'username' | 'token'>;
+export type PublicUser = Pick<User, 'id' | 'username'>;
 

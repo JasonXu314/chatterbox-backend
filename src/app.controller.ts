@@ -46,7 +46,7 @@ export class AppController {
 
 	@Post('/login')
 	async login(@Body() loginInfo: LoginDTO): Promise<AppUser> {
-		const user = await this.dbService.getUserByName(loginInfo.username);
+		const user = await this.dbService.getUserByEmail(loginInfo.email);
 
 		if (!user) {
 			throw new BadRequestException('Incorrect username or password!');
