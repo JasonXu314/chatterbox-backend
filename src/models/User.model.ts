@@ -5,8 +5,9 @@ export class User {
 	salt: string;
 	token: string;
 	email: string;
+	avatar: string;
 }
 
-export type AppUser = Pick<User, 'id' | 'username' | 'token'>;
-export type PublicUser = Pick<User, 'id' | 'username'>;
+export type AppUser = Pick<User, 'id' | 'username' | 'token' | 'avatar'>;
+export type PublicUser = Pick<User, 'id' | 'username' | 'avatar'>;
 

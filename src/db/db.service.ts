@@ -104,5 +104,13 @@ export class DBService {
 			return trx<Message>('messages').where({ id }).first();
 		});
 	}
+
+	public async setAvatar(user: User, avatarUrl: string): Promise<boolean> {
+		return this._db.transaction(async (trx) => {
+			await trx<User>('users').update({ avatar: avatarUrl }).where({ id: user.id });
+
+			return true;
+		});
+	}
 }
 

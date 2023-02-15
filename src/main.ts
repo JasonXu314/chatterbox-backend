@@ -1,9 +1,10 @@
-import { NestFactory } from '@nestjs/core';
-import { WsAdapter } from '@nestjs/platform-ws';
 import { config } from 'dotenv';
-import { AppModule } from './app.module';
 
 config({ path: '.env' });
+
+import { NestFactory } from '@nestjs/core';
+import { WsAdapter } from '@nestjs/platform-ws';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);

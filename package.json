@@ -30,6 +30,7 @@
 		"dotenv": "^16.0.3",
 		"knex": "^2.4.2",
 		"mysql2": "^3.1.0",
+		"nanoid": "^3",
 		"reflect-metadata": "^0.1.13",
 		"rimraf": "^4.1.2",
 		"rxjs": "^7.8.0"
@@ -40,6 +41,7 @@
 		"@nestjs/testing": "^8.4.7",
 		"@types/express": "^4.17.13",
 		"@types/jest": "28.1.2",
+		"@types/multer": "^1.4.7",
 		"@types/node": "^18.0.0",
 		"@types/sequelize": "^4.28.14",
 		"@types/supertest": "^2.0.12",
@@ -74,4 +76,3 @@
 		"testEnvironment": "node"
 	}
 }
-
