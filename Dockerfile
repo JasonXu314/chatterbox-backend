@@ -4,15 +4,6 @@ WORKDIR /app
 
 COPY package.json ./
 COPY yarn.lock ./
-COPY knexfile.ts ./
-
-RUN mkdir migrations
-RUN mkdir seeds
-
-COPY migrations/* ./migrations/
-COPY seeds/* ./seeds/
-
-RUN echo $NODE_ENV
 
 RUN yarn install
 

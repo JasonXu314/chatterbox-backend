@@ -19,7 +19,7 @@
 		"test:cov": "jest --coverage",
 		"test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
 		"test:e2e": "jest --config ./test/jest-e2e.json",
-		"postinstall": "knex migrate:latest && knex seed:run"
+		"migrate": "knex migrate:latest && knex seed:run"
 	},
 	"dependencies": {
 		"@nestjs/common": "^9.3.2",
@@ -27,6 +27,7 @@
 		"@nestjs/platform-express": "^9.3.2",
 		"@nestjs/platform-ws": "^9.3.2",
 		"@nestjs/websockets": "^9.3.2",
+		"@sendgrid/mail": "^7.7.0",
 		"dotenv": "^16.0.3",
 		"knex": "^2.4.2",
 		"mysql2": "^3.1.0",
@@ -76,3 +77,4 @@
 		"testEnvironment": "node"
 	}
 }
+
