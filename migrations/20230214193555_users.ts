@@ -2,7 +2,6 @@ import { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
 	if (await knex.schema.hasTable('users')) {
-		await knex.schema.dropTable('channels');
 		await knex.schema.dropViewIfExists('user_view');
 		await knex.schema.dropTable('users');
 	}
