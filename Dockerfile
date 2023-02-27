@@ -12,6 +12,8 @@ RUN mkdir seeds
 COPY migrations/* ./migrations/
 COPY seeds/* ./seeds/
 
+RUN echo $NODE_ENV
+
 RUN yarn install
 
 COPY . .
