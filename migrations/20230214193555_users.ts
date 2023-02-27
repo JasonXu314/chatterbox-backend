@@ -1,11 +1,6 @@
 import { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
-	if (await knex.schema.hasTable('users')) {
-		await knex.schema.dropViewIfExists('user_view');
-		await knex.schema.dropTable('users');
-	}
-
 	return knex.schema.createTable('users', (table) => {
 		table.increments('id').notNullable();
 		table.string('username').notNullable().unique();
