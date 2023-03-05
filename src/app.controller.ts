@@ -13,6 +13,7 @@ import {
 	UseInterceptors
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import * as sgMail from '@sendgrid/mail';
 import { createHash } from 'crypto';
 import { CDNService } from './cdn/cdn.service';
 import { DBService } from './db/db.service';
@@ -21,6 +22,14 @@ import { CreateMessageDTO } from './models/Message.dto';
 import { Message } from './models/Message.model';
 import { CreateUserDTO, LoginDTO } from './models/User.dto';
 import { AppUser, PublicUser } from './models/User.model';
+
+interface SQLError {
+	code: string;
+	errno: number;
+	sqlState: string;
+	sqlMessage: string;
+	sql: string;
+}
 
 @Controller({ host: process.env.DOMAIN })
 export class AppController {
@@ -54,9 +63,42 @@ export class AppController {
 
 	@Post('/signup')
 	async createUser(@Body() user: CreateUserDTO): Promise<AppUser> {
-		const { id, username, token, avatar } = await this.dbService.createUser(user);
+		try {
+			const { id, username, token, avatar, email } = await this.dbService.createUser(user);
 
-		return { id, username, token, avatar };
+			sgMail
+				.send({
+					to: email,
+					from: 'chatterbox@null.net',
+					subject: 'ChatterBox Registration',
+					text: 'Thank you for signing up with ChatterBox!',
+					html: '<span>Thank you for signing up with <strong>ChatterBox</strong>!</span>'
+				})
+				.then(([response]) => {
+					console.log(response);
+				})
+				.catch((err) => {
+					console.log(err);
+				});
+
+			return { id, username, token, avatar };
+		} catch (e: unknown) {
+			const err = e as SQLError;
+
+			if ('code' in err && err.code === 'ER_DUP_ENTRY') {
+				if (err.sqlMessage.includes('username')) {
+					throw new BadRequestException({ error: 'DUPLICATE_USERNAME', message: 'User with that username already exists.' });
+				} else if (err.sqlMessage.includes('email')) {
+					throw new BadRequestException({ error: 'DUPLICATE_EMAIL', message: 'There is already a user associated to that email.' });
+				} else {
+					console.log(err);
+					throw new InternalServerErrorException('Something probably went wrong with the SQL');
+				}
+			} else {
+				console.log(err);
+				throw new InternalServerErrorException('Something probably went wrong (but not the SQL)');
+			}
+		}
 	}
 
 	@Post('/login')
