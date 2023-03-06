@@ -61,6 +61,17 @@ export class AppController {
 		return users[0];
 	}
 
+	@Get('/me')
+	async getMe(@Query('token') token: string): Promise<AppUser> {
+		const user = await this.dbService.getUserByToken(token);
+
+		if (!user) {
+			throw new NotFoundException('User not found!');
+		}
+
+		return { id: user.id, username: user.username, token: user.token, avatar: user.avatar };
+	}
+
 	@Post('/signup')
 	async createUser(@Body() user: CreateUserDTO): Promise<AppUser> {
 		try {
