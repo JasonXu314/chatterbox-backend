@@ -77,7 +77,7 @@ export class DBService {
 			password: hashedPassword,
 			salt,
 			token,
-			avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`
+			avatar: `https://ui-avatars.com/api?name=${encodeURIComponent(user.username)}&background=random&length=1`
 		};
 
 		return this._db.transaction(async (trx) => {
