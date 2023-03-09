@@ -18,6 +18,7 @@ import { createHash } from 'crypto';
 import { CDNService } from './cdn/cdn.service';
 import { DBService } from './db/db.service';
 import { GatewayService } from './gateway/gateway.service';
+import { Channel } from './models/Channel.model';
 import { CreateMessageDTO } from './models/Message.dto';
 import { Message } from './models/Message.model';
 import { CreateUserDTO, LoginDTO } from './models/User.dto';
@@ -77,20 +78,13 @@ export class AppController {
 		try {
 			const { id, username, token, avatar, email } = await this.dbService.createUser(user);
 
-			sgMail
-				.send({
-					to: email,
-					from: 'chatterbox@null.net',
-					subject: 'ChatterBox Registration',
-					text: 'Thank you for signing up with ChatterBox!',
-					html: '<span>Thank you for signing up with <strong>ChatterBox</strong>!</span>'
-				})
-				.then(([response]) => {
-					console.log(response);
-				})
-				.catch((err) => {
-					console.log(err);
-				});
+			sgMail.send({
+				to: email,
+				from: 'chatterbox@null.net',
+				subject: 'ChatterBox Registration',
+				text: 'Thank you for signing up with ChatterBox!',
+				html: '<span>Thank you for signing up with <strong>ChatterBox</strong>!</span>'
+			});
 
 			return { id, username, token, avatar };
 		} catch (e: unknown) {
@@ -166,6 +160,11 @@ export class AppController {
 		} else {
 			throw new InternalServerErrorException('Something went wrong...');
 		}
+	}
+
+	@Get('/channels')
+	async getChannels(@Query('token') userToken: string): Promise<Channel[]> {
+		return this.dbService.getChannels(userToken);
 	}
 }
 

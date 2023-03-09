@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { Knex, knex } from 'knex';
+import { Channel } from 'src/models/Channel.model';
 import { Message } from 'src/models/Message.model';
 import { CreateUserDTO } from '../models/User.dto';
 import { PublicUser, User } from '../models/User.model';
@@ -83,6 +84,9 @@ export class DBService {
 		return this._db.transaction(async (trx) => {
 			const [id] = await trx.insert(newUser).into('users');
 
+			const [publicChannel] = await trx.select('id').from('channels').where({ name: 'public' });
+			await trx.insert({ userId: id, channelId: publicChannel.id }).into('channel_access');
+
 			return { ...newUser, id };
 		});
 	}
@@ -111,6 +115,23 @@ export class DBService {
 
 			return true;
 		});
+	}
+
+	public async getChannels(userToken: string): Promise<Channel[]> {
+		const [user] = await this._db.select('id').from('users').where({ token: userToken });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		const db = this._db;
+
+		return this._db
+			.select('id', 'name')
+			.from('channels')
+			.leftJoin('channel_access', function () {
+				this.on('channel_access.channelId', '=', 'channels.id').andOn('channel_access.userId', '=', db.raw('?', [user.id]));
+			});
 	}
 }
 
