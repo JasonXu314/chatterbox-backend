@@ -32,7 +32,7 @@ interface SQLError {
 	sql: string;
 }
 
-@Controller({ host: process.env.DOMAIN })
+@Controller()
 export class AppController {
 	constructor(private readonly dbService: DBService, private readonly gatewayService: GatewayService, private readonly cdnService: CDNService) {}
 
@@ -151,7 +151,7 @@ export class AppController {
 
 		const path = this.cdnService.saveAvatar(file);
 		const avatarURL =
-			process.env.NODE_ENV === 'development' ? `http://cdn.localhost:8888/avatar/${path}` : `https://cdn.${process.env.DOMAIN}/avatar/${path}`;
+			process.env.NODE_ENV === 'development' ? `http://localhost:8888/cdn/avatar/${path}` : `https://${process.env.DOMAIN}/cdn/avatar/${path}`;
 
 		const success = await this.dbService.setAvatar(user, avatarURL);
 
