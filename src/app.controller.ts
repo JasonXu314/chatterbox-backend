@@ -166,5 +166,20 @@ export class AppController {
 	async getChannels(@Query('token') userToken: string): Promise<Channel[]> {
 		return this.dbService.getChannels(userToken);
 	}
+
+	@Get('/friends')
+	async getFriend(@Query('token') userToken: string): Promise<(PublicUser & { channelId: number })[]> {
+		return this.dbService.getFriends(userToken);
+	}
+
+	@Post('/request-friend')
+	async requestFriend(@Body('token') userToken: string, @Body('id') friendId: number): Promise<void> {
+		return this.dbService.makeFriendRequest(userToken, friendId);
+	}
+
+	@Post('/accept-request')
+	async accept(@Body('token') userToken: string, @Body('id') friendId: number): Promise<PublicUser & { channelId: number }> {
+		return this.dbService.acceptFriendRequest(userToken, friendId);
+	}
 }
 
