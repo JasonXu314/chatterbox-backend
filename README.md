@@ -28,6 +28,7 @@ Body {
 Response {
 	id: number
 	username: string
+	avatar: string
 	token: string
 }
 ```
@@ -41,6 +42,7 @@ Body {
 Response {
 	id: number
 	username: string
+	avatar: string
 	token: string
 }
 ```
@@ -52,6 +54,7 @@ GET /users/[id: number]
 Response {
 	id: string
 	username: string
+	avatar: string
 }
 ```
 
@@ -68,6 +71,57 @@ Response {
 	authorId: number
 	content: string
 	createdAt: Date
+}
+```
+
+```
+POST /set-avatar
+Body (FormData) {
+	file: File
+	token: string
+}
+Response string
+```
+
+```
+GET /channels?token=string
+Response {
+	id: number
+	name: string
+	type: 'public' | 'direct'
+}[]
+```
+
+```
+GET /friends?token=string
+Response {
+	id: string
+	username: string
+	avatar: string
+	channelId: string
+}[]
+```
+
+```
+POST /request-friend
+Body {
+	token: string
+	id: number 		// the id of the request recipient
+}
+Response none
+```
+
+```
+POST /accept-request
+Body {
+	token :string
+	id: number		// the id of the requester
+}
+Response (the new friend) {
+	id: string
+	username: string
+	avatar: string
+	channelId: string
 }
 ```
 
