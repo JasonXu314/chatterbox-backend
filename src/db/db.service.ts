@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { Knex, knex } from 'knex';
 import { Channel } from 'src/models/Channel.model';
+import { FriendRequestResponseDTO } from 'src/models/FriendRequest.dto';
 import { Message } from 'src/models/Message.model';
 import { CreateUserDTO } from '../models/User.dto';
 import { PublicUser, User } from '../models/User.model';
@@ -152,6 +153,23 @@ export class DBService {
 			);
 
 		return friendUsers.map((user) => ({ ...user, channelId: relations.find(({ recipient }) => recipient === user.id).channelId }));
+	}
+
+	public async getFriendRequests(token: string): Promise<FriendRequestResponseDTO[]> {
+		const [user] = await this._db.select('id').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		const requests = await this._db.select('fromId', 'requestedAt').from('friend_request').where({ toId: user.id });
+
+		return Promise.all(
+			requests.map(async ({ fromId, requestedAt }) => ({
+				from: (await this._db.select('id', 'username', 'avatar').from('users').where({ id: fromId }))[0],
+				timestamp: requestedAt
+			}))
+		);
 	}
 
 	public async makeFriendRequest(token: string, friendId: number): Promise<void> {

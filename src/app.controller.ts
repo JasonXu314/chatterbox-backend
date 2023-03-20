@@ -19,6 +19,7 @@ import { CDNService } from './cdn/cdn.service';
 import { DBService } from './db/db.service';
 import { GatewayService } from './gateway/gateway.service';
 import { Channel } from './models/Channel.model';
+import { FriendRequestResponseDTO } from './models/FriendRequest.dto';
 import { CreateMessageDTO } from './models/Message.dto';
 import { Message } from './models/Message.model';
 import { CreateUserDTO, LoginDTO } from './models/User.dto';
@@ -180,6 +181,11 @@ export class AppController {
 	@Post('/accept-request')
 	async accept(@Body('token') userToken: string, @Body('id') friendId: number): Promise<PublicUser & { channelId: number }> {
 		return this.dbService.acceptFriendRequest(userToken, friendId);
+	}
+
+	@Get('/friend-requests')
+	async getFriendRequest(@Query('token') userToken: string): Promise<FriendRequestResponseDTO[]> {
+		return this.dbService.getFriendRequests(userToken);
 	}
 }
 

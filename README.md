@@ -125,6 +125,18 @@ Response (the new friend) {
 }
 ```
 
+```
+POST /friend-requests?token=string
+Response {
+	from: (the sending user) {
+		id: number
+		username: string
+		avatar: string
+	}
+	timestamp: string
+}[]
+```
+
 ## Test
 
 ```bash
