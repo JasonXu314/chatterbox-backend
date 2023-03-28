@@ -8,6 +8,6 @@ export class User {
 	avatar: string;
 }
 
-export type AppUser = Pick<User, 'id' | 'username' | 'token' | 'avatar'>;
+export type AppUser = Pick<User, 'id' | 'username' | 'token' | 'avatar' | 'email'>;
 export type PublicUser = Pick<User, 'id' | 'username' | 'avatar'>;
 

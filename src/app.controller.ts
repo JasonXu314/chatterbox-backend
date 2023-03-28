@@ -71,7 +71,7 @@ export class AppController {
 			throw new NotFoundException('User not found!');
 		}
 
-		return { id: user.id, username: user.username, token: user.token, avatar: user.avatar };
+		return { id: user.id, username: user.username, token: user.token, avatar: user.avatar, email: user.email };
 	}
 
 	@Post('/signup')
@@ -87,7 +87,7 @@ export class AppController {
 				html: '<span>Thank you for signing up with <strong>ChatterBox</strong>!</span>'
 			});
 
-			return { id, username, token, avatar };
+			return { id, username, token, avatar, email };
 		} catch (e: unknown) {
 			const err = e as SQLError;
 
@@ -123,7 +123,7 @@ export class AppController {
 			throw new BadRequestException('Incorrect username or password!');
 		}
 
-		return { id: user.id, username: user.username, token: user.token, avatar: user.avatar };
+		return { id: user.id, username: user.username, token: user.token, avatar: user.avatar, email: user.email };
 	}
 
 	@Post('/create-message')
