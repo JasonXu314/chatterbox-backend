@@ -183,9 +183,19 @@ export class AppController {
 		return this.dbService.acceptFriendRequest(userToken, friendId);
 	}
 
+	@Post('/reject-request')
+	async reject(@Body('token') userToken: string, @Body('id') rejectedId: number): Promise<void> {
+		return this.dbService.rejectFriendRequest(userToken, rejectedId);
+	}
+
 	@Get('/friend-requests')
 	async getFriendRequest(@Query('token') userToken: string): Promise<FriendRequestResponseDTO[]> {
 		return this.dbService.getFriendRequests(userToken);
+	}
+
+	@Get('/best-friend')
+	async getBestFriend(@Query('token') userToken: string): Promise<PublicUser & { channelId: number }> {
+		return this.dbService.getBestFriend(userToken);
 	}
 }
 

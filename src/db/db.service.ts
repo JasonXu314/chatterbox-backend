@@ -130,7 +130,7 @@ export class DBService {
 		return this._db
 			.select('id', 'name', 'type')
 			.from('channels')
-			.leftJoin('channel_access', function () {
+			.innerJoin('channel_access', function () {
 				this.on('channel_access.channelId', '=', 'channels.id').andOn('channel_access.userId', '=', db.raw('?', [user.id]));
 			});
 	}
@@ -142,17 +142,16 @@ export class DBService {
 			throw new BadRequestException('Invalid user token');
 		}
 
-		const relations = await this._db.select('sender', 'recipient', 'channelId').from('friend').where({ sender: user.id });
+		const db = this._db;
 
 		const friendUsers = await this._db
-			.select('id', 'username', 'avatar')
+			.select('users.id', 'users.username', 'users.avatar', 'friend.channelId')
 			.from('users')
-			.whereIn(
-				'id',
-				relations.map(({ recipient }) => recipient)
-			);
+			.innerJoin('friend', function () {
+				this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+			});
 
-		return friendUsers.map((user) => ({ ...user, channelId: relations.find(({ recipient }) => recipient === user.id).channelId }));
+		return friendUsers;
 	}
 
 	public async getFriendRequests(token: string): Promise<FriendRequestResponseDTO[]> {
@@ -181,6 +180,12 @@ export class DBService {
 
 		if (user.id === friendId) {
 			throw new BadRequestException('Requested friend is reqesting user');
+		}
+
+		const requests = await this._db.select('*').from('friend_request').where({ fromId: user.id, toId: friendId });
+
+		if (requests.length > 0) {
+			throw new BadRequestException('There already exists a friend request to the target user.');
 		}
 
 		return this._db.transaction(async (trx) => {
@@ -215,10 +220,53 @@ export class DBService {
 			await trx.insert({ userId: user.id, channelId }).into('channel_access');
 			await trx.insert({ userId: newFriend.id, channelId }).into('channel_access');
 
-			await trx.delete().from('friend_request').where(request);
+			await trx.delete().from('friend_request').where({ fromId: friendId, toId: user.id }).orWhere({ fromId: user.id, toId: friendId });
 
 			return { ...newFriend, channelId };
 		});
+	}
+
+	public async rejectFriendRequest(token: string, rejectedId: number): Promise<void> {
+		const [user] = await this._db.select('id', 'username').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		if (user.id === rejectedId) {
+			throw new BadRequestException('Requested friend is reqesting user');
+		}
+
+		const [request] = await this._db.select('fromId', 'toId', 'requestedAt').from('friend_request').where({ fromId: rejectedId, toId: user.id });
+
+		if (!request) {
+			throw new BadRequestException('There does not exist an outstanding friend request from that user');
+		}
+
+		await this._db.delete().from('friend_request').where({ fromId: rejectedId, toId: user.id }).orWhere({ fromId: user.id, toId: rejectedId });
+	}
+
+	public async getBestFriend(token: string): Promise<PublicUser & { channelId: number }> {
+		const [user] = await this._db.select('id', 'username').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		const db = this._db;
+
+		return (
+			await this._db
+				.select('users.id', 'username', 'avatar', 'friend.channelId')
+				.from('users')
+				.innerJoin('friend', function () {
+					this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+				})
+				.crossJoin('messages', () => {})
+				.whereRaw('users.id = messages.authorId')
+				.groupBy(['users.id', 'friend.channelId'])
+				.orderBy(db.count('messages.id'), 'desc')
+		)[0];
 	}
 }
 
