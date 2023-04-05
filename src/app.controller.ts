@@ -163,6 +163,11 @@ export class AppController {
 		}
 	}
 
+	@Post('/reset-avatar')
+	async resetAvatar(@Body('token') token: string): Promise<AppUser> {
+		return this.dbService.resetAvatar(token);
+	}
+
 	@Get('/channels')
 	async getChannels(@Query('token') userToken: string): Promise<Channel[]> {
 		return this.dbService.getChannels(userToken);

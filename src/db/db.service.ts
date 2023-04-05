@@ -5,7 +5,7 @@ import { Channel } from 'src/models/Channel.model';
 import { FriendRequestResponseDTO } from 'src/models/FriendRequest.dto';
 import { Message } from 'src/models/Message.model';
 import { CreateUserDTO } from '../models/User.dto';
-import { PublicUser, User } from '../models/User.model';
+import { AppUser, PublicUser, User } from '../models/User.model';
 
 @Injectable()
 export class DBService {
@@ -79,7 +79,7 @@ export class DBService {
 			password: hashedPassword,
 			salt,
 			token,
-			avatar: `https://ui-avatars.com/api?name=${encodeURIComponent(user.username)}&background=random&length=1`
+			avatar: `https://ui-avatars.com/api?name=${encodeURIComponent(user.username)}&background=${this._generateRandomColor()}&length=1`
 		};
 
 		return this._db.transaction(async (trx) => {
@@ -90,6 +90,21 @@ export class DBService {
 
 			return { ...newUser, id };
 		});
+	}
+
+	public async resetAvatar(token: string): Promise<AppUser> {
+		const [user] = await this._db.select('username', 'id', 'token', 'email', 'avatar').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		const newDefaultAvatar = `https://ui-avatars.com/api?name=${encodeURIComponent(user.username)}&background=${this._generateRandomColor()}&length=1`;
+
+		await this._db.update({ avatar: newDefaultAvatar }).where({ id: user.id });
+
+		user.avatar = newDefaultAvatar;
+		return user;
 	}
 
 	public async getMessages(channelId: number): Promise<Message[]> {
@@ -267,6 +282,14 @@ export class DBService {
 				.groupBy(['users.id', 'friend.channelId'])
 				.orderBy(db.count('messages.id'), 'desc')
 		)[0];
+	}
+
+	private _generateRandomColor(): string {
+		return new Array(3)
+			.fill(null)
+			.map(() => Math.random() * 255)
+			.map((val) => val.toString(16))
+			.join('');
 	}
 }
 
