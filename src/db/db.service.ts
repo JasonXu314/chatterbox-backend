@@ -101,7 +101,7 @@ export class DBService {
 
 		const newDefaultAvatar = `https://ui-avatars.com/api?name=${encodeURIComponent(user.username)}&background=${this._generateRandomColor()}&length=1`;
 
-		await this._db.update({ avatar: newDefaultAvatar }).where({ id: user.id });
+		await this._db('users').update({ avatar: newDefaultAvatar }).where({ id: user.id });
 
 		user.avatar = newDefaultAvatar;
 		return user;
