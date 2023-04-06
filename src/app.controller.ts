@@ -173,6 +173,17 @@ export class AppController {
 		return this.dbService.getChannels(userToken);
 	}
 
+	@Get('/messages')
+	async getMessages(@Query('token') userToken: string, @Query('channelId') channelId: number): Promise<Message[]> {
+		const channels = await this.dbService.getChannels(userToken);
+
+		if (!channels.find((channel) => channel.id === channelId)) {
+			throw new BadRequestException('User does not have access to that channel.');
+		}
+
+		return this.dbService.getMessages(channelId);
+	}
+
 	@Get('/friends')
 	async getFriend(@Query('token') userToken: string): Promise<(PublicUser & { channelId: number })[]> {
 		return this.dbService.getFriends(userToken);
