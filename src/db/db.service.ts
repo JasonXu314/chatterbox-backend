@@ -287,7 +287,7 @@ export class DBService {
 	private _generateRandomColor(): string {
 		return new Array(3)
 			.fill(null)
-			.map(() => Math.random() * 255)
+			.map(() => Math.round(Math.random() * 255))
 			.map((val) => val.toString(16))
 			.join('');
 	}
