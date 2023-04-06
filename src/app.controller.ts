@@ -6,6 +6,7 @@ import {
 	InternalServerErrorException,
 	NotFoundException,
 	Param,
+	ParseIntPipe,
 	Patch,
 	Post,
 	Query,
@@ -174,7 +175,7 @@ export class AppController {
 	}
 
 	@Get('/messages')
-	async getMessages(@Query('token') userToken: string, @Query('channelId') channelId: number): Promise<Message[]> {
+	async getMessages(@Query('token') userToken: string, @Query('channelId', ParseIntPipe) channelId: number): Promise<Message[]> {
 		const channels = await this.dbService.getChannels(userToken);
 
 		if (!channels.find((channel) => channel.id === channelId)) {
