@@ -5,7 +5,7 @@ import { Channel } from 'src/models/Channel.model';
 import { FriendRequestResponseDTO } from 'src/models/FriendRequest.dto';
 import { Message } from 'src/models/Message.model';
 import { CreateUserDTO } from '../models/User.dto';
-import { AppUser, PublicUser, User } from '../models/User.model';
+import { AppUser, Friend, PublicUser, User, UserStatus } from '../models/User.model';
 
 @Injectable()
 export class DBService {
@@ -67,6 +67,10 @@ export class DBService {
 		return user || null;
 	}
 
+	public async setStatus(id: number, status: UserStatus): Promise<void> {
+		await this._db('users').update({ status }).where({ id });
+	}
+
 	public async createUser(user: CreateUserDTO): Promise<User> {
 		const salt = randomBytes(16).toString('hex');
 		const hashedPassword = createHash('sha256')
@@ -79,7 +83,8 @@ export class DBService {
 			password: hashedPassword,
 			salt,
 			token,
-			avatar: `https://ui-avatars.com/api?name=${encodeURIComponent(user.username)}&background=${this._generateRandomColor()}&length=1`
+			avatar: `https://ui-avatars.com/api?name=${encodeURIComponent(user.username)}&background=${this._generateRandomColor()}&length=1`,
+			status: 'OFFLINE'
 		};
 
 		return this._db.transaction(async (trx) => {
@@ -90,6 +95,15 @@ export class DBService {
 
 			return { ...newUser, id };
 		});
+	}
+
+	public async setPassword(token: string, newPassword: string): Promise<void> {
+		const salt = randomBytes(16).toString('hex');
+		const hashedPassword = createHash('sha256')
+			.update(newPassword + salt)
+			.digest('hex');
+
+		await this._db('users').update({ password: hashedPassword, salt }).where({ token });
 	}
 
 	public async resetAvatar(token: string): Promise<AppUser> {
@@ -150,23 +164,41 @@ export class DBService {
 			});
 	}
 
-	public async getFriends(userToken: string): Promise<(PublicUser & { channelId: number })[]> {
-		const [user] = await this._db.select('id').from('users').where({ token: userToken });
+	public async getFriends(id: number): Promise<Friend[]>;
+	public async getFriends(userToken: string): Promise<Friend[]>;
+	public async getFriends(userTokenOrId: string | number): Promise<Friend[]> {
+		if (typeof userTokenOrId === 'string') {
+			const userToken = userTokenOrId;
 
-		if (!user) {
-			throw new BadRequestException('Invalid user token');
+			const [user] = await this._db.select('id').from('users').where({ token: userToken });
+
+			if (!user) {
+				throw new BadRequestException('Invalid user token');
+			}
+
+			const db = this._db;
+
+			const friendUsers = await this._db
+				.select('users.id', 'users.username', 'users.avatar', 'users.status', 'friend.channelId')
+				.from('users')
+				.innerJoin('friend', function () {
+					this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+				});
+
+			return friendUsers;
+		} else {
+			const id = userTokenOrId;
+			const db = this._db;
+
+			const friendUsers = await this._db
+				.select('users.id', 'users.username', 'users.avatar', 'users.status', 'friend.channelId')
+				.from('users')
+				.innerJoin('friend', function () {
+					this.on('friend.sender', '=', db.raw('?', [id])).andOn('friend.recipient', '=', 'users.id');
+				});
+
+			return friendUsers;
 		}
-
-		const db = this._db;
-
-		const friendUsers = await this._db
-			.select('users.id', 'users.username', 'users.avatar', 'friend.channelId')
-			.from('users')
-			.innerJoin('friend', function () {
-				this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
-			});
-
-		return friendUsers;
 	}
 
 	public async getFriendRequests(token: string): Promise<FriendRequestResponseDTO[]> {
@@ -186,26 +218,48 @@ export class DBService {
 		);
 	}
 
-	public async makeFriendRequest(token: string, friendId: number): Promise<void> {
+	public async makeFriendRequest(token: string, friendId: number): Promise<void>;
+	public async makeFriendRequest(token: string, username: string): Promise<void>;
+	public async makeFriendRequest(token: string, idOrUsername: number | string): Promise<void> {
 		const [user] = await this._db.select('id').from('users').where({ token });
 
 		if (!user) {
 			throw new BadRequestException('Invalid user token');
 		}
 
-		if (user.id === friendId) {
-			throw new BadRequestException('Requested friend is reqesting user');
+		if (typeof idOrUsername === 'string') {
+			const username = idOrUsername;
+
+			if (user.username === username) {
+				throw new BadRequestException('Requested friend is reqesting user');
+			}
+
+			const requests = await this._db.select('*').from('friend_request').where({ fromId: user.id, toId: user.id });
+
+			if (requests.length > 0) {
+				throw new BadRequestException('There already exists a friend request to the target user.');
+			}
+
+			return this._db.transaction(async (trx) => {
+				await trx<{ fromId: number; toId: number }>('friend_request').insert({ fromId: user.id, toId: user.id });
+			});
+		} else {
+			const friendId = idOrUsername;
+
+			if (user.id === friendId) {
+				throw new BadRequestException('Requested friend is reqesting user');
+			}
+
+			const requests = await this._db.select('*').from('friend_request').where({ fromId: user.id, toId: friendId });
+
+			if (requests.length > 0) {
+				throw new BadRequestException('There already exists a friend request to the target user.');
+			}
+
+			return this._db.transaction(async (trx) => {
+				await trx<{ fromId: number; toId: number }>('friend_request').insert({ fromId: user.id, toId: friendId });
+			});
 		}
-
-		const requests = await this._db.select('*').from('friend_request').where({ fromId: user.id, toId: friendId });
-
-		if (requests.length > 0) {
-			throw new BadRequestException('There already exists a friend request to the target user.');
-		}
-
-		return this._db.transaction(async (trx) => {
-			await trx<{ fromId: number; toId: number }>('friend_request').insert({ fromId: user.id, toId: friendId });
-		});
 	}
 
 	public async acceptFriendRequest(token: string, friendId: number): Promise<PublicUser & { channelId: number }> {

@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as sgMail from '@sendgrid/mail';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { CDNService } from './cdn/cdn.service';
 import { DBService } from './db/db.service';
 import { GatewayService } from './gateway/gateway.service';
@@ -36,6 +36,9 @@ interface SQLError {
 
 @Controller()
 export class AppController {
+	private readonly _tokens: Map<string, string> = new Map();
+	private readonly _timeouts: Map<string, NodeJS.Timeout> = new Map();
+
 	constructor(private readonly dbService: DBService, private readonly gatewayService: GatewayService, private readonly cdnService: CDNService) {}
 
 	@Get('/users')
@@ -127,6 +130,57 @@ export class AppController {
 		return { id: user.id, username: user.username, token: user.token, avatar: user.avatar, email: user.email };
 	}
 
+	@Post('/reset-password')
+	async resetPassword(@Body('token') token: string): Promise<void> {
+		const user = await this.dbService.getUserByToken(token);
+
+		if (!user) {
+			throw new BadRequestException('Invalid token!');
+		}
+
+		const nonce = randomBytes(16).toString('hex');
+
+		await sgMail.send({
+			to: user.email,
+			from: 'chatterbox@null.net',
+			subject: 'ChatterBox Password Reset',
+			text: `We received a request to reset your password. To do so, please visit ${process.env.PASS_RESET_URL}?nonce=${nonce}. If this was not you, you can safely ignore this email. This link expires in 30 minutes.`,
+			html: `<span>We received a request to <strong>reset your password</strong>. To do so, please visit <a href="${process.env.PASS_RESET_URL}?nonce=${nonce}" target="__blank" rel="noreferrer noopener">this URL</a>. If this was <strong>not</strong> you, <i>you can safely ignore this email</i>. <strong>This link expires in 30 minutes</strong>.</span>`
+		});
+
+		this._tokens.set(nonce, user.token);
+		this._timeouts.set(
+			nonce,
+			setTimeout(() => {
+				this._tokens.delete(nonce);
+				this._timeouts.delete(nonce);
+			}, 30 * 60 * 1000)
+		);
+	}
+
+	@Post('/set-password')
+	async setPassword(@Body('nonce') nonce: string, @Body('password') newPassword: string): Promise<void> {
+		if (!nonce) {
+			throw new BadRequestException('Missing nonce for set password.');
+		}
+
+		if (!this._timeouts.has(nonce)) {
+			throw new BadRequestException('Invalid nonce (time could have expired).');
+		}
+
+		clearTimeout(this._timeouts.get(nonce));
+		const token = this._tokens.get(nonce);
+
+		await this.dbService.setPassword(token, newPassword);
+	}
+
+	@Get('/valid-nonce')
+	isValidNonce(@Query('nonce') nonce: string): void {
+		if (!this._tokens.has(nonce)) {
+			throw new BadRequestException('Invalid nonce (time could have expired)');
+		}
+	}
+
 	@Post('/create-message')
 	async createMessage(@Body() messageInfo: CreateMessageDTO): Promise<Message> {
 		const author = await this.dbService.getUserByToken(messageInfo.token);
@@ -191,8 +245,14 @@ export class AppController {
 	}
 
 	@Post('/request-friend')
-	async requestFriend(@Body('token') userToken: string, @Body('id') friendId: number): Promise<void> {
-		return this.dbService.makeFriendRequest(userToken, friendId);
+	async requestFriend(@Body('token') userToken: string, @Body('id') friendId: number, @Body('username') username: string): Promise<void> {
+		if (friendId) {
+			return this.dbService.makeFriendRequest(userToken, friendId);
+		} else if (username) {
+			return this.dbService.makeFriendRequest(userToken, username);
+		} else {
+			throw new BadRequestException('Needs either friend id or username to request friendship.');
+		}
 	}
 
 	@Post('/accept-request')

@@ -9,6 +9,7 @@ export async function up(knex: Knex): Promise<void> {
 		table.string('token').notNullable().unique();
 		table.string('email').notNullable().unique();
 		table.string('avatar').notNullable().unique();
+		table.enum('status', ['ONLINE', 'OFFLINE', 'IDLE', 'DO_NOT_DISTURB']).notNullable().defaultTo('OFFLINE');
 	});
 }
 
