@@ -94,7 +94,7 @@ export class AppController {
 					</table>
 					<span>
 						<h1>WS Messages</h1>
-						<button onclick="resetLogs">Reset Log</button>
+						<button onclick="resetLogs()">Reset Log</button>
 					</span>
 					<table>
 						<thead>
