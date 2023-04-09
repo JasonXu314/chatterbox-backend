@@ -10,7 +10,7 @@ export class GatewayService {
 	private _socketToUser: Map<WebSocket, number> = new Map();
 	private _userToSocket: Map<number, WebSocket> = new Map();
 	private _statuses: Map<number, UserStatus> = new Map();
-	private _messageLog: InboundWSMessage[] = [];
+	private _messageLog: (InboundWSMessage | OutboundWSMessage)[] = [];
 
 	constructor(private readonly dbService: DBService) {
 		this._logger = new Logger('GatewayService');
@@ -27,6 +27,8 @@ export class GatewayService {
 			id: user.id,
 			status: 'ONLINE'
 		};
+
+		this.logMessage(msg);
 
 		this.dbService.getFriends(user.token).then((friends) => {
 			friends.forEach((friend) => {
@@ -60,6 +62,8 @@ export class GatewayService {
 				status: 'OFFLINE'
 			};
 
+			this.logMessage(msg);
+
 			this.dbService.getFriends(userId).then((friends) => {
 				friends.forEach((friend) => {
 					if (this._userToSocket.has(friend.id)) {
@@ -76,11 +80,11 @@ export class GatewayService {
 		});
 	}
 
-	public logMessage(message: InboundWSMessage): void {
+	public logMessage(message: InboundWSMessage | OutboundWSMessage): void {
 		this._messageLog.push(message);
 	}
 
-	public getMessageLog(): InboundWSMessage[] {
+	public getMessageLog(): (InboundWSMessage | OutboundWSMessage)[] {
 		return this._messageLog;
 	}
 }
