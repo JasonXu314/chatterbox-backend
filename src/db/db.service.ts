@@ -234,14 +234,15 @@ export class DBService {
 				throw new BadRequestException('Requested friend is reqesting user');
 			}
 
-			const requests = await this._db.select('*').from('friend_request').where({ fromId: user.id, toId: user.id });
+			const [friend] = await this._db.select('id').from('users').where({ username });
+			const requests = await this._db.select('*').from('friend_request').where({ fromId: user.id, toId: friend.id });
 
 			if (requests.length > 0) {
 				throw new BadRequestException('There already exists a friend request to the target user.');
 			}
 
 			return this._db.transaction(async (trx) => {
-				await trx<{ fromId: number; toId: number }>('friend_request').insert({ fromId: user.id, toId: user.id });
+				await trx<{ fromId: number; toId: number }>('friend_request').insert({ fromId: user.id, toId: friend.id });
 			});
 		} else {
 			const friendId = idOrUsername;

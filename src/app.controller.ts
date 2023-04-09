@@ -41,6 +41,41 @@ export class AppController {
 
 	constructor(private readonly dbService: DBService, private readonly gatewayService: GatewayService, private readonly cdnService: CDNService) {}
 
+	@Get('/admin-panel')
+	async adminPanel() {
+		return `
+			<html>
+				<head>
+					<title>Admin Panel</title>
+				</head>
+				<body>
+					<table>
+						<thead>
+							<tr>
+								<td>ID</td>
+								<td>username</td>
+								<td>email</td>
+								<td>avatar</td>
+								<td>status</td>
+							</tr>
+						</thead>
+						<tbody>
+							${(await this.dbService.getUsers()).map(({ id, username, email, avatar, status }) => `
+								<tr>
+									<td>${id}</td>
+									<td>${username}</td>
+									<td>${email}</td>
+									<td>${avatar}</td>
+									<td>${status}</td>
+								</tr>
+							`)}
+						</tbody>
+					</table>
+				</body>
+			</html>
+		`
+	}
+
 	@Get('/users')
 	async getUsers(@Query('id') id?: number): Promise<PublicUser[] | PublicUser> {
 		const users = await this.dbService.getPublicUsers(id);
