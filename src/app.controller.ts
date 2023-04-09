@@ -131,31 +131,60 @@ export class AppController {
 	}
 
 	@Post('/reset-password')
-	async resetPassword(@Body('token') token: string): Promise<void> {
-		const user = await this.dbService.getUserByToken(token);
+	async resetPassword(@Body('token') token: string, @Body('email') email: string): Promise<void> {
+		if (token) {
+			const user = await this.dbService.getUserByToken(token);
 
-		if (!user) {
-			throw new BadRequestException('Invalid token!');
+			if (!user) {
+				throw new BadRequestException('Invalid token!');
+			}
+
+			const nonce = randomBytes(16).toString('hex');
+
+			await sgMail.send({
+				to: user.email,
+				from: 'chatterbox@null.net',
+				subject: 'ChatterBox Password Reset',
+				text: `We received a request to reset your password. To do so, please visit ${process.env.PASS_RESET_URL}?nonce=${nonce}. If this was not you, you can safely ignore this email. This link expires in 30 minutes.`,
+				html: `<span>We received a request to <strong>reset your password</strong>. To do so, please visit <a href="${process.env.PASS_RESET_URL}?nonce=${nonce}" target="__blank" rel="noreferrer noopener">this URL</a>. If this was <strong>not</strong> you, <i>you can safely ignore this email</i>. <strong>This link expires in 30 minutes</strong>.</span>`
+			});
+
+			this._tokens.set(nonce, user.token);
+			this._timeouts.set(
+				nonce,
+				setTimeout(() => {
+					this._tokens.delete(nonce);
+					this._timeouts.delete(nonce);
+				}, 30 * 60 * 1000)
+			);
+		} else if (email) {
+			const user = await this.dbService.getUserByEmail(email);
+
+			if (!user) {
+				throw new BadRequestException('Invalid token!');
+			}
+
+			const nonce = randomBytes(16).toString('hex');
+
+			await sgMail.send({
+				to: email,
+				from: 'chatterbox@null.net',
+				subject: 'ChatterBox Password Reset',
+				text: `We received a request to reset your password. To do so, please visit ${process.env.PASS_RESET_URL}?nonce=${nonce}. If this was not you, you can safely ignore this email. This link expires in 30 minutes.`,
+				html: `<span>We received a request to <strong>reset your password</strong>. To do so, please visit <a href="${process.env.PASS_RESET_URL}?nonce=${nonce}" target="__blank" rel="noreferrer noopener">this URL</a>. If this was <strong>not</strong> you, <i>you can safely ignore this email</i>. <strong>This link expires in 30 minutes</strong>.</span>`
+			});
+
+			this._tokens.set(nonce, user.token);
+			this._timeouts.set(
+				nonce,
+				setTimeout(() => {
+					this._tokens.delete(nonce);
+					this._timeouts.delete(nonce);
+				}, 30 * 60 * 1000)
+			);
+		} else {
+			throw new BadRequestException('Must have either token or email!');
 		}
-
-		const nonce = randomBytes(16).toString('hex');
-
-		await sgMail.send({
-			to: user.email,
-			from: 'chatterbox@null.net',
-			subject: 'ChatterBox Password Reset',
-			text: `We received a request to reset your password. To do so, please visit ${process.env.PASS_RESET_URL}?nonce=${nonce}. If this was not you, you can safely ignore this email. This link expires in 30 minutes.`,
-			html: `<span>We received a request to <strong>reset your password</strong>. To do so, please visit <a href="${process.env.PASS_RESET_URL}?nonce=${nonce}" target="__blank" rel="noreferrer noopener">this URL</a>. If this was <strong>not</strong> you, <i>you can safely ignore this email</i>. <strong>This link expires in 30 minutes</strong>.</span>`
-		});
-
-		this._tokens.set(nonce, user.token);
-		this._timeouts.set(
-			nonce,
-			setTimeout(() => {
-				this._tokens.delete(nonce);
-				this._timeouts.delete(nonce);
-			}, 30 * 60 * 1000)
-		);
 	}
 
 	@Post('/set-password')
