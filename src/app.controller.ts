@@ -92,7 +92,10 @@ export class AppController {
 								.join('')}
 						</tbody>
 					</table>
-					<h1>WS Messages</h1>
+					<span>
+						<h1>WS Messages</h1>
+						<button onclick="resetLogs">Reset Log</button>
+					</span>
 					<table>
 						<thead>
 							<tr>
@@ -115,9 +118,21 @@ export class AppController {
 								.join('')}
 						</tbody>
 					</table>
+					<script>
+						function resetLogs() {
+							fetch('/reset-gateway-logs', { method: 'POST' }).then(() => {
+								location.reload();
+							});
+						}
+					</script>
 				</body>
 			</html>
 		`;
+	}
+
+	@Post('/reset-gateway-logs')
+	resetGatewayLogs(): void {
+		this.gatewayService.clearLog();
 	}
 
 	@Get('/users')

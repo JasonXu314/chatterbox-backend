@@ -82,6 +82,7 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 				}
 				break;
 			default:
+				this.gatewayService.logMessage({ ...msg, killed: true } as InboundWSMessage);
 				client.close(4000, 'Invalid message type');
 				break;
 		}

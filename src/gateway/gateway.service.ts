@@ -87,5 +87,9 @@ export class GatewayService {
 	public getMessageLog(): (InboundWSMessage | OutboundWSMessage)[] {
 		return this._messageLog;
 	}
+
+	public clearLog(): void {
+		this._messageLog = [];
+	}
 }
 
