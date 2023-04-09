@@ -55,6 +55,7 @@ export class AppController {
 
 						table {
 							margin-top: 1em;
+							margin-bottom: 2em;
 						}
 
 						tr {
@@ -64,6 +65,7 @@ export class AppController {
 						td {
 							margin-left: -1px;
 							border: 1px solid black;
+							display: inline;
 						}
 					</style>
 				</head>
@@ -89,6 +91,29 @@ export class AppController {
 									<td>${email}</td>
 									<td>${avatar}</td>
 									<td>${status}</td>
+								</tr>`
+								)
+								.join('')}
+						</tbody>
+					</table>
+					<h1>WS Message</h1>
+					<table>
+						<thead>
+							<tr>
+								<td>type</td>
+								<td>properties</td>
+							</tr>
+						</thead>
+						<tbody>
+							${this.gatewayService
+								.getMessageLog()
+								.map(
+									({ type, ...other }) => `
+								<tr>
+									<td>${type}</td>
+									<td>${Object.entries(other)
+										.map(([key, value]) => `${key}: ${value}`)
+										.join(', ')}</td>
 								</tr>`
 								)
 								.join('')}

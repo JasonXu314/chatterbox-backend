@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DBService } from 'src/db/db.service';
 import { User, UserStatus } from 'src/models/User.model';
 import { WebSocket } from 'ws';
-import { OutboundWSMessage, WSStatusChangeMessage } from './messages.model';
+import { InboundWSMessage, OutboundWSMessage, WSStatusChangeMessage } from './messages.model';
 
 @Injectable()
 export class GatewayService {
@@ -10,6 +10,7 @@ export class GatewayService {
 	private _socketToUser: Map<WebSocket, number> = new Map();
 	private _userToSocket: Map<number, WebSocket> = new Map();
 	private _statuses: Map<number, UserStatus> = new Map();
+	private _messageLog: InboundWSMessage[];
 
 	constructor(private readonly dbService: DBService) {
 		this._logger = new Logger('GatewayService');
@@ -73,6 +74,14 @@ export class GatewayService {
 		this._userToSocket.forEach((socket) => {
 			socket.send(JSON.stringify(message));
 		});
+	}
+
+	public logMessage(message: InboundWSMessage): void {
+		this._messageLog.push(message);
+	}
+
+	public getMessageLog(): InboundWSMessage[] {
+		return this._messageLog;
 	}
 }
 

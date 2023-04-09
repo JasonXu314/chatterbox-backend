@@ -17,6 +17,8 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 		const listener = async (evt: MessageEvent) => {
 			const msg: InboundWSMessage = JSON.parse(evt.data.toString());
 
+			this.gatewayService.logMessage(msg);
+
 			switch (msg.type) {
 				case 'CONNECT':
 					const success = await this.authClient(client, msg);
@@ -52,6 +54,8 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 			client.addEventListener('message', async (evt) => {
 				try {
 					const msg: InboundWSMessage = JSON.parse(evt.data.toString());
+
+					this.gatewayService.logMessage(msg);
 
 					await this.handleClientMessages(msg, client);
 				} catch (err) {
