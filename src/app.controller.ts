@@ -47,8 +47,28 @@ export class AppController {
 			<html>
 				<head>
 					<title>Admin Panel</title>
+					<style>
+						* {
+							margin: 0;
+							padding: 0;
+						}
+
+						table {
+							margin-top: 1em;
+						}
+
+						tr {
+							margin-bottom: -1px;
+						}
+
+						td {
+							margin-left: -1px;
+							border: 1px solid black;
+						}
+					</style>
 				</head>
 				<body>
+					<h1>Users</h1>
 					<table>
 						<thead>
 							<tr>
@@ -60,20 +80,23 @@ export class AppController {
 							</tr>
 						</thead>
 						<tbody>
-							${(await this.dbService.getUsers()).map(({ id, username, email, avatar, status }) => `
+							${(await this.dbService.getUsers())
+								.map(
+									({ id, username, email, avatar, status }) => `
 								<tr>
 									<td>${id}</td>
 									<td>${username}</td>
 									<td>${email}</td>
 									<td>${avatar}</td>
 									<td>${status}</td>
-								</tr>
-							`)}
+								</tr>`
+								)
+								.join('')}
 						</tbody>
 					</table>
 				</body>
 			</html>
-		`
+		`;
 	}
 
 	@Get('/users')

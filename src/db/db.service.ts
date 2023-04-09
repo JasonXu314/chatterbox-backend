@@ -355,6 +355,7 @@ export class DBService {
 			.fill(null)
 			.map(() => Math.round(Math.random() * 255))
 			.map((val) => val.toString(16))
+			.map((val) => (val.length < 2 ? '0' + val : val))
 			.join('');
 	}
 }
