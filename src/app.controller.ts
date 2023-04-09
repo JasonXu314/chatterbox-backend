@@ -66,6 +66,7 @@ export class AppController {
 							margin-left: -1px;
 							border: 1px solid black;
 							display: inline;
+							padding: 2px 4px;
 						}
 					</style>
 				</head>
@@ -96,7 +97,7 @@ export class AppController {
 								.join('')}
 						</tbody>
 					</table>
-					<h1>WS Message</h1>
+					<h1>WS Messages</h1>
 					<table>
 						<thead>
 							<tr>

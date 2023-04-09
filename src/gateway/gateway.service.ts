@@ -10,7 +10,7 @@ export class GatewayService {
 	private _socketToUser: Map<WebSocket, number> = new Map();
 	private _userToSocket: Map<number, WebSocket> = new Map();
 	private _statuses: Map<number, UserStatus> = new Map();
-	private _messageLog: InboundWSMessage[];
+	private _messageLog: InboundWSMessage[] = [];
 
 	constructor(private readonly dbService: DBService) {
 		this._logger = new Logger('GatewayService');
