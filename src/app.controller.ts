@@ -56,16 +56,11 @@ export class AppController {
 						table {
 							margin-top: 1em;
 							margin-bottom: 2em;
-						}
-
-						tr {
-							margin-bottom: -1px;
+							border-collapse: collapse;
 						}
 
 						td {
-							margin-left: -1px;
 							border: 1px solid black;
-							display: inline;
 							padding: 2px 4px;
 						}
 					</style>
