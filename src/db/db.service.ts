@@ -221,7 +221,7 @@ export class DBService {
 	public async makeFriendRequest(token: string, friendId: number): Promise<void>;
 	public async makeFriendRequest(token: string, username: string): Promise<void>;
 	public async makeFriendRequest(token: string, idOrUsername: number | string): Promise<void> {
-		const [user] = await this._db.select('id').from('users').where({ token });
+		const [user] = await this._db.select('id', 'username').from('users').where({ token });
 
 		if (!user) {
 			throw new BadRequestException('Invalid user token');

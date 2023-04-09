@@ -24,7 +24,7 @@ import { FriendRequestResponseDTO } from './models/FriendRequest.dto';
 import { CreateMessageDTO } from './models/Message.dto';
 import { Message } from './models/Message.model';
 import { CreateUserDTO, LoginDTO } from './models/User.dto';
-import { AppUser, PublicUser } from './models/User.model';
+import { AppUser, Friend, PublicUser } from './models/User.model';
 
 interface SQLError {
 	code: string;
@@ -269,7 +269,7 @@ export class AppController {
 	}
 
 	@Get('/friends')
-	async getFriend(@Query('token') userToken: string): Promise<(PublicUser & { channelId: number })[]> {
+	async getFriend(@Query('token') userToken: string): Promise<Friend[]> {
 		return this.dbService.getFriends(userToken);
 	}
 
