@@ -235,6 +235,11 @@ export class DBService {
 			}
 
 			const [friend] = await this._db.select('id').from('users').where({ username });
+
+			if (!friend) {
+				throw new BadRequestException('No user with that username exists.');
+			}
+
 			const requests = await this._db.select('*').from('friend_request').where({ fromId: user.id, toId: friend.id });
 
 			if (requests.length > 0) {
@@ -249,6 +254,12 @@ export class DBService {
 
 			if (user.id === friendId) {
 				throw new BadRequestException('Requested friend is reqesting user');
+			}
+
+			const [friend] = await this._db.select('id').from('users').where({ id: friendId });
+
+			if (!friend) {
+				throw new BadRequestException('No user with that username exists.');
 			}
 
 			const requests = await this._db.select('*').from('friend_request').where({ fromId: user.id, toId: friendId });
