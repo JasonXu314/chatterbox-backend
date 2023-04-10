@@ -99,20 +99,24 @@ export class AppController {
 					<table>
 						<thead>
 							<tr>
-								<td>type</td>
-								<td>properties</td>
+								<td>event</td>
+								<td>message</td>
 							</tr>
 						</thead>
 						<tbody>
 							${this.gatewayService
 								.getMessageLog()
 								.map(
-									({ type, ...other }) => `
+									({ event, message }) => `
 								<tr>
-									<td>${type}</td>
-									<td>${Object.entries(other)
-										.map(([key, value]) => `${key}: ${value}`)
-										.join(', ')}</td>
+									<td>${event}</td>
+									<td>${
+										typeof message === 'string'
+											? message
+											: Object.entries(message)
+													.map(([key, value]) => `${key}: ${value}`)
+													.join(', ')
+									}</td>
 								</tr>`
 								)
 								.join('')}

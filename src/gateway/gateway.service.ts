@@ -4,13 +4,19 @@ import { User, UserStatus } from 'src/models/User.model';
 import { WebSocket } from 'ws';
 import { InboundWSMessage, OutboundWSMessage, WSStatusChangeMessage } from './messages.model';
 
+export type LogEntry =
+	| { event: 'send'; message: OutboundWSMessage }
+	| { event: 'recv'; message: InboundWSMessage }
+	| { event: 'close'; message: string }
+	| { event: 'kill'; message: string };
+
 @Injectable()
 export class GatewayService {
 	private _logger: Logger;
 	private _socketToUser: Map<WebSocket, number> = new Map();
 	private _userToSocket: Map<number, WebSocket> = new Map();
 	private _statuses: Map<number, UserStatus> = new Map();
-	private _messageLog: (InboundWSMessage | OutboundWSMessage)[] = [];
+	private _eventLog: LogEntry[] = [];
 
 	constructor(private readonly dbService: DBService) {
 		this._logger = new Logger('GatewayService');
@@ -28,7 +34,7 @@ export class GatewayService {
 			status: 'ONLINE'
 		};
 
-		this.logMessage(msg);
+		this.logEvent({ event: 'send', message: msg });
 
 		this.dbService.getFriends(user.token).then((friends) => {
 			friends.forEach((friend) => {
@@ -62,7 +68,7 @@ export class GatewayService {
 				status: 'OFFLINE'
 			};
 
-			this.logMessage(msg);
+			this.logEvent({ event: 'send', message: msg });
 
 			this.dbService.getFriends(userId).then((friends) => {
 				friends.forEach((friend) => {
@@ -80,16 +86,16 @@ export class GatewayService {
 		});
 	}
 
-	public logMessage(message: InboundWSMessage | OutboundWSMessage): void {
-		this._messageLog.push(message);
+	public logEvent(evt: LogEntry): void {
+		this._eventLog.push(evt);
 	}
 
-	public getMessageLog(): (InboundWSMessage | OutboundWSMessage)[] {
-		return this._messageLog;
+	public getMessageLog(): LogEntry[] {
+		return this._eventLog;
 	}
 
 	public clearLog(): void {
-		this._messageLog = [];
+		this._eventLog = [];
 	}
 }
 
