@@ -48,7 +48,7 @@ export class GatewayService {
 	public async getUser(socket: WebSocket): Promise<User | null> {
 		const userId = this._socketToUser.get(socket);
 
-		if (!userId) {
+		if (userId === undefined) {
 			return null;
 		}
 
