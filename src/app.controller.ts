@@ -296,7 +296,7 @@ export class AppController {
 		}
 
 		clearTimeout(this._timeouts.get(nonce));
-		const token = this._tokens.get(nonce);
+		const token = this._tokens.get(nonce)!;
 
 		await this.dbService.setPassword(token, newPassword);
 	}

@@ -1,6 +1,6 @@
 export class Channel {
-	id: number;
-	name: string;
-	type: 'public' | 'direct';
+	id: number = -1;
+	name: string = '';
+	type: 'public' | 'direct' = 'public';
 }
 

@@ -1,6 +1,7 @@
 import { User } from './User.model';
 
 export class FriendRequestResponseDTO {
-	from: User;
-	timestamp: string;
+	from: User | null = null;
+	timestamp: string = '';
 }
+

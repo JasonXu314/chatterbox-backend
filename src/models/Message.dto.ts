@@ -1,6 +1,6 @@
 export class CreateMessageDTO {
-	channelId: number;
-	content: string;
-	token: string;
+	channelId: number = -1;
+	content: string = '';
+	token: string = '';
 }
 

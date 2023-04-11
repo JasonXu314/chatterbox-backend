@@ -135,7 +135,7 @@ export class DBService {
 		return this._db.transaction(async (trx) => {
 			const [id] = await trx.insert(newMessage).into('messages');
 
-			return trx<Message>('messages').where({ id }).first();
+			return trx<Message>('messages').where({ id }).first() as Promise<Message>;
 		});
 	}
 

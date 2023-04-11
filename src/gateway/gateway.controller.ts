@@ -75,6 +75,14 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 		switch (msg.type) {
 			case 'SEND':
 				const author = await this.gatewayService.getUser(client);
+
+				if (!author) {
+					this.logger.log('Shit happened...');
+					this.gatewayService.logEvent({ event: 'recv', message: msg });
+					this.gatewayService.logEvent({ event: 'error', message: '^ Author should not be null...' });
+					return;
+				}
+
 				this.logger.log(`${author.username} sent message ${msg.message} in channel ${msg.channelId}`);
 				this.gatewayService.logEvent({ event: 'recv', message: msg });
 
@@ -97,7 +105,12 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 		client.removeAllListeners();
 
 		this.gatewayService.getUser(client).then((user) => {
-			this.gatewayService.logEvent({ event: 'close', message: `Socket closed (belonging to ${user.username}, id ${user.id})` });
+			if (!user) {
+				this.logger.log('Shit happened...');
+				this.gatewayService.logEvent({ event: 'close', message: 'Socket closed, unknown user' });
+			} else {
+				this.gatewayService.logEvent({ event: 'close', message: `Socket closed (belonging to ${user.username}, id ${user.id})` });
+			}
 		});
 		this.gatewayService.closeSocket(client);
 	}

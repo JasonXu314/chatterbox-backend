@@ -8,7 +8,8 @@ export type LogEntry =
 	| { event: 'send'; message: OutboundWSMessage }
 	| { event: 'recv'; message: InboundWSMessage }
 	| { event: 'close'; message: string }
-	| { event: 'kill'; message: string };
+	| { event: 'kill'; message: string }
+	| { event: 'error'; message: string };
 
 @Injectable()
 export class GatewayService {
@@ -39,7 +40,7 @@ export class GatewayService {
 		this.dbService.getFriends(user.token).then((friends) => {
 			friends.forEach((friend) => {
 				if (this._userToSocket.has(friend.id)) {
-					this._userToSocket.get(friend.id).send(JSON.stringify(msg));
+					this._userToSocket.get(friend.id)!.send(JSON.stringify(msg));
 				}
 			});
 		});
@@ -58,7 +59,7 @@ export class GatewayService {
 	public closeSocket(socket: WebSocket): void {
 		const userId = this._socketToUser.get(socket);
 
-		if (userId) {
+		if (userId !== undefined) {
 			this._socketToUser.delete(socket);
 			this._userToSocket.delete(userId);
 
@@ -73,7 +74,7 @@ export class GatewayService {
 			this.dbService.getFriends(userId).then((friends) => {
 				friends.forEach((friend) => {
 					if (this._userToSocket.has(friend.id)) {
-						this._userToSocket.get(friend.id).send(JSON.stringify(msg));
+						this._userToSocket.get(friend.id)!.send(JSON.stringify(msg));
 					}
 				});
 			});

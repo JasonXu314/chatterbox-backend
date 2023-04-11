@@ -13,7 +13,7 @@ async function bootstrap() {
 	app.useWebSocketAdapter(new WsAdapter(app));
 	app.enableCors({ origin: true });
 
-	sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+	sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
 	await app.listen(process.env.PORT || 8888);
 }
