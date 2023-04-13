@@ -5,7 +5,7 @@ export async function up(knex: Knex): Promise<void> {
 		table.increments('id').notNullable();
 		table.increments('channelId', { primaryKey: false }).notNullable().references('channels.id');
 		table.increments('authorId', { primaryKey: false }).notNullable().references('users.id');
-		table.string('content').notNullable();
+		table.string('content', 2000).notNullable();
 		table.timestamp('createdAt').notNullable().defaultTo(knex.fn.now());
 	});
 }
