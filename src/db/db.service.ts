@@ -4,6 +4,7 @@ import { Knex, knex } from 'knex';
 import { Channel } from 'src/models/Channel.model';
 import { FriendRequestResponseDTO } from 'src/models/FriendRequest.dto';
 import { Message } from 'src/models/Message.model';
+import { FriendNotificationDTO, MessageNotificationDTO } from 'src/models/Notifications.dto';
 import { CreateUserDTO } from '../models/User.dto';
 import { AppUser, Friend, PublicUser, User, UserStatus } from '../models/User.model';
 
@@ -302,6 +303,7 @@ export class DBService {
 			await trx.insert({ userId: newFriend.id, channelId }).into('channel_access');
 
 			await trx.delete().from('friend_request').where({ fromId: friendId, toId: user.id }).orWhere({ fromId: user.id, toId: friendId });
+			await trx.delete().from('friend_notifications').where({ user: user.id, from: friendId, to: user.id });
 
 			return { ...newFriend, channelId };
 		});
@@ -324,7 +326,10 @@ export class DBService {
 			throw new BadRequestException('There does not exist an outstanding friend request from that user');
 		}
 
-		await this._db.delete().from('friend_request').where({ fromId: rejectedId, toId: user.id }).orWhere({ fromId: user.id, toId: rejectedId });
+		return this._db.transaction(async (trx) => {
+			await trx.delete().from('friend_request').where({ fromId: rejectedId, toId: user.id });
+			await trx.delete().from('friend_notifications').where({ user: user.id, from: rejectedId, to: user.id });
+		});
 	}
 
 	public async getBestFriend(token: string): Promise<PublicUser & { channelId: number }> {
@@ -348,6 +353,57 @@ export class DBService {
 				.groupBy(['users.id', 'friend.channelId'])
 				.orderBy(db.count('messages.id'), 'desc')
 		)[0];
+	}
+
+	public async makeFriendNotification(user: number, from: number, to: number): Promise<void> {
+		return this._db.insert({ user, from, to }).into('friend_notifications');
+	}
+
+	public async makeMessageNotification(user: number, channelId: number): Promise<void> {
+		const [notification] = await this._db.select('user', 'channelId', 'count').from('message_notifications').where({ user, channelId });
+
+		if (!notification) {
+			await this._db.insert({ user, channelId, count: 1 }).into('message_notifications');
+		} else {
+			await this._db('message_notifications')
+				.update({ count: this._db.raw('count + 1') })
+				.where({ user, channelId });
+		}
+	}
+
+	public async getNotifications(token: string): Promise<(FriendNotificationDTO | MessageNotificationDTO)[]> {
+		const [user] = await this._db.select('id').from('users').where({ token });
+
+		const friendNotifications = await this._db.select('user', 'from', 'to').from('friend_notifications').where({ user: user.id });
+		const friendNotifDTOs = (
+			await Promise.all(
+				friendNotifications.map<Promise<FriendNotificationDTO | null>>(async ({ user, from, to }) => {
+					if (user === to) {
+						return {
+							type: 'INCOMING_REQUEST',
+							from: (await this._db.select('id', 'username', 'avatar').from('users').where({ id: from }))[0]
+						};
+					} else if (user === from) {
+						return {
+							type: 'NEW_FRIEND',
+							to: (await this._db.select('id', 'username', 'avatar').from('users').where({ id: to }))[0]
+						};
+					} else {
+						return null;
+					}
+				})
+			)
+		).filter((val) => val !== null) as FriendNotificationDTO[];
+
+		const messageNotifications = await this._db
+			.select('channels.id', 'channels.name', 'channels.type', 'count')
+			.from('message_notifications')
+			.innerJoin('channels', function () {
+				this.on('message_notifications.channelId', '=', 'channels.id');
+			})
+			.where({ user: user.id });
+
+		return [...friendNotifDTOs, ...messageNotifications.map(({ id, name, type, count }) => ({ channel: { id, name, type }, count }))];
 	}
 
 	private _generateRandomColor(): string {

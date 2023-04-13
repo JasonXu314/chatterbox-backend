@@ -90,6 +90,13 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 					const newMessage = await this.dbService.createMessage(author, msg.message, msg.channelId);
 
 					this.gatewayService.broadcast({ type: 'MESSAGE', message: newMessage });
+
+					const users = await this.dbService.getUsers();
+					users.forEach((user) => {
+						if (!this.gatewayService.isOnline(user.id)) {
+							this.dbService.makeMessageNotification(user.id, msg.channelId);
+						}
+					});
 				} else {
 					client.close(5000, 'Socket not mapped to user');
 				}

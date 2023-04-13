@@ -23,6 +23,7 @@ import { Channel } from './models/Channel.model';
 import { FriendRequestResponseDTO } from './models/FriendRequest.dto';
 import { CreateMessageDTO } from './models/Message.dto';
 import { Message } from './models/Message.model';
+import { FriendNotificationDTO, MessageNotificationDTO } from './models/Notifications.dto';
 import { CreateUserDTO, LoginDTO } from './models/User.dto';
 import { AppUser, Friend, PublicUser } from './models/User.model';
 
@@ -320,6 +321,13 @@ export class AppController {
 
 		this.gatewayService.broadcast({ type: 'MESSAGE', message: newMessage });
 
+		const users = await this.dbService.getUsers();
+		users.forEach((user) => {
+			if (!this.gatewayService.isOnline(user.id)) {
+				this.dbService.makeMessageNotification(user.id, messageInfo.channelId);
+			}
+		});
+
 		return newMessage;
 	}
 
@@ -374,9 +382,27 @@ export class AppController {
 	@Post('/request-friend')
 	async requestFriend(@Body('token') userToken: string, @Body('id') friendId: number, @Body('username') username: string): Promise<void> {
 		if (friendId) {
-			return this.dbService.makeFriendRequest(userToken, friendId);
+			const friend = await this.dbService.getUserById(friendId),
+				user = await this.dbService.getUserByToken(userToken);
+
+			if (friend && user) {
+				await this.dbService.makeFriendRequest(userToken, friendId);
+
+				if (!this.gatewayService.isOnline(friend.id)) {
+					await this.dbService.makeFriendNotification(friendId, user.id, friendId);
+				}
+			}
 		} else if (username) {
-			return this.dbService.makeFriendRequest(userToken, username);
+			const friend = await this.dbService.getUserByName(username),
+				user = await this.dbService.getUserByToken(userToken);
+
+			if (friend && user) {
+				await this.dbService.makeFriendRequest(userToken, username);
+
+				if (!this.gatewayService.isOnline(friend.id)) {
+					await this.dbService.makeFriendNotification(friend.id, user.id, friend.id);
+				}
+			}
 		} else {
 			throw new BadRequestException('Needs either friend id or username to request friendship.');
 		}
@@ -400,6 +426,11 @@ export class AppController {
 	@Get('/best-friend')
 	async getBestFriend(@Query('token') userToken: string): Promise<PublicUser & { channelId: number }> {
 		return this.dbService.getBestFriend(userToken);
+	}
+
+	@Get('/notifications')
+	async getNotifications(@Query('token') userToken: string): Promise<(FriendNotificationDTO | MessageNotificationDTO)[]> {
+		return this.dbService.getNotifications(userToken);
 	}
 }
 

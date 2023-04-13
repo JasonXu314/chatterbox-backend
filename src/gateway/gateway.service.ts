@@ -98,5 +98,9 @@ export class GatewayService {
 	public clearLog(): void {
 		this._eventLog = [];
 	}
+
+	public isOnline(id: number): boolean {
+		return this._statuses.get(id) === 'ONLINE';
+	}
 }
 
