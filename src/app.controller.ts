@@ -432,5 +432,25 @@ export class AppController {
 	async getNotifications(@Query('token') userToken: string): Promise<(FriendNotificationDTO | MessageNotificationDTO)[]> {
 		return this.dbService.getNotifications(userToken);
 	}
+
+	@Post('/clear-notification')
+	async clearNotification(
+		@Body('token') userToken: string,
+		@Body('channel', ParseIntPipe) channel?: number,
+		@Body('from', ParseIntPipe) from?: number,
+		@Body('to', ParseIntPipe) to?: number
+	): Promise<void> {
+		if (channel !== undefined) {
+			return this.dbService.clearMessageNotification(userToken, channel);
+		} else if (from !== undefined) {
+			return this.dbService.clearFriendNotification(userToken, 'INCOMING_REQUEST', from);
+		} else if (to !== undefined) {
+			return this.dbService.clearFriendNotification(userToken, 'NEW_FRIEND', to);
+		} else {
+			throw new BadRequestException(
+				'Needs one of: the channel to clear message notifications from, the id of the user who sent a friend request, or the id of the new friend'
+			);
+		}
+	}
 }
 

@@ -4,7 +4,7 @@ import { Knex, knex } from 'knex';
 import { Channel } from 'src/models/Channel.model';
 import { FriendRequestResponseDTO } from 'src/models/FriendRequest.dto';
 import { Message } from 'src/models/Message.model';
-import { FriendNotificationDTO, MessageNotificationDTO } from 'src/models/Notifications.dto';
+import { FriendNotificationDTO, FriendNotificationType, MessageNotificationDTO } from 'src/models/Notifications.dto';
 import { CreateUserDTO } from '../models/User.dto';
 import { AppUser, Friend, PublicUser, User, UserStatus } from '../models/User.model';
 
@@ -404,6 +404,32 @@ export class DBService {
 			.where({ user: user.id });
 
 		return [...friendNotifDTOs, ...messageNotifications.map(({ id, name, type, count }) => ({ channel: { id, name, type }, count }))];
+	}
+
+	public async clearFriendNotification(token: string, type: FriendNotificationType, id: number): Promise<void> {
+		const [user] = await this._db.select('id').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		await this._db
+			.delete()
+			.from('friend_notifications')
+			.where(type === 'INCOMING_REQUEST' ? { user: user.id, type, from: id } : { user: user.id, type, to: id });
+	}
+
+	public async clearMessageNotification(token: string, channelId: number): Promise<void> {
+		const [user] = await this._db.select('id').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		await this._db
+			.delete()
+			.from('message_notifications')
+			.where({ user: user.id, channel: channelId });
 	}
 
 	private _generateRandomColor(): string {
