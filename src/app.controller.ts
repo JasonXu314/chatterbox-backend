@@ -380,8 +380,8 @@ export class AppController {
 	}
 
 	@Post('/request-friend')
-	async requestFriend(@Body('token') userToken: string, @Body('id') friendId: number, @Body('username') username: string): Promise<void> {
-		if (friendId) {
+	async requestFriend(@Body('token') userToken: string, @Body('id', ParseIntPipe) friendId: number, @Body('username') username: string): Promise<void> {
+		if (friendId !== undefined) {
 			const friend = await this.dbService.getUserById(friendId),
 				user = await this.dbService.getUserByToken(userToken);
 
@@ -426,6 +426,28 @@ export class AppController {
 	@Get('/best-friend')
 	async getBestFriend(@Query('token') userToken: string): Promise<PublicUser & { channelId: number }> {
 		return this.dbService.getBestFriend(userToken);
+	}
+
+	@Post('/block')
+	async blockUser(@Body('token') token: string, @Body('id', ParseIntPipe) blockedId: number, @Body('username') username: string): Promise<void> {
+		if (blockedId !== undefined) {
+			await this.dbService.block(token, blockedId);
+		} else if (username) {
+			await this.dbService.block(token, username);
+		} else {
+			throw new BadRequestException('Needs either friend id or username to block a user.');
+		}
+	}
+
+	@Post('/unblock')
+	async unblockUser(@Body('token') token: string, @Body('id', ParseIntPipe) blockedId: number, @Body('username') username: string): Promise<void> {
+		if (blockedId !== undefined) {
+			await this.dbService.unblock(token, blockedId);
+		} else if (username) {
+			await this.dbService.unblock(token, username);
+		} else {
+			throw new BadRequestException('Needs either friend id or username to block a user.');
+		}
 	}
 
 	@Get('/notifications')

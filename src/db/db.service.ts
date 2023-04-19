@@ -260,7 +260,7 @@ export class DBService {
 			const [friend] = await this._db.select('id').from('users').where({ id: friendId });
 
 			if (!friend) {
-				throw new BadRequestException('No user with that username exists.');
+				throw new BadRequestException('No user with that id exists.');
 			}
 
 			const requests = await this._db.select('*').from('friend_request').where({ fromId: user.id, toId: friendId });
@@ -355,6 +355,118 @@ export class DBService {
 		)[0];
 	}
 
+	public async block(token: string, blockedId: number): Promise<void>;
+	public async block(token: string, username: string): Promise<void>;
+	public async block(token: string, idOrUsername: number | string): Promise<void> {
+		const [user] = await this._db.select('id', 'username').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		if (typeof idOrUsername === 'string') {
+			const username = idOrUsername;
+
+			if (user.username === username) {
+				throw new BadRequestException('You cannot block yourself');
+			}
+
+			const [blockee] = await this._db.select('id').from('users').where({ username });
+
+			if (!blockee) {
+				throw new BadRequestException('No user with that username exists.');
+			}
+
+			const blocks = await this._db.select('*').from('blocked').where({ blocker: user.id, blocked: blockee.id });
+
+			if (blocks.length > 0) {
+				throw new BadRequestException('You are already blocking the target user.');
+			}
+
+			return this._db.transaction(async (trx) => {
+				await trx<{ blocker: number; blocked: number }>('blocked').insert({ blocker: user.id, blocked: blockee.id });
+			});
+		} else {
+			const blockedId = idOrUsername;
+
+			if (user.id === blockedId) {
+				throw new BadRequestException('You cannot block yourself');
+			}
+
+			const [friend] = await this._db.select('id').from('users').where({ id: blockedId });
+
+			if (!friend) {
+				throw new BadRequestException('No user with that id exists.');
+			}
+
+			const blocks = await this._db.select('*').from('blocked').where({ blocker: user.id, blocked: blockedId });
+
+			if (blocks.length > 0) {
+				throw new BadRequestException('You are already blocking the target user.');
+			}
+
+			return this._db.transaction(async (trx) => {
+				await trx<{ blocker: number; blocked: number }>('blocked').insert({ blocker: user.id, blocked: blockedId });
+			});
+		}
+	}
+
+	public async unblock(token: string, blockedId: number): Promise<void>;
+	public async unblock(token: string, username: string): Promise<void>;
+	public async unblock(token: string, idOrUsername: number | string): Promise<void> {
+		const [user] = await this._db.select('id', 'username').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		if (typeof idOrUsername === 'string') {
+			const username = idOrUsername;
+
+			if (user.username === username) {
+				throw new BadRequestException('You cannot block yourself');
+			}
+
+			const [blockee] = await this._db.select('id').from('users').where({ username });
+
+			if (!blockee) {
+				throw new BadRequestException('No user with that username exists.');
+			}
+
+			const [block] = await this._db.select('*').from('blocked').where({ blocker: user.id, blocked: blockee.id });
+
+			if (!block) {
+				throw new BadRequestException('You are not blocking the target user.');
+			}
+
+			return this._db.transaction(async (trx) => {
+				await trx.delete().from('blocked').where({ blocker: user.id, blocked: blockee.id });
+			});
+		} else {
+			const blockedId = idOrUsername;
+
+			if (user.id === blockedId) {
+				throw new BadRequestException('You cannot block yourself');
+			}
+
+			const [friend] = await this._db.select('id').from('users').where({ id: blockedId });
+
+			if (!friend) {
+				throw new BadRequestException('No user with that id exists.');
+			}
+
+			const [block] = await this._db.select('*').from('blocked').where({ blocker: user.id, blocked: blockedId });
+
+			if (!block) {
+				throw new BadRequestException('You are not blocking the target user.');
+			}
+
+			return this._db.transaction(async (trx) => {
+				await trx.delete().from('blocked').where({ blocker: user.id, blocked: blockedId });
+			});
+		}
+	}
+
 	public async makeFriendNotification(user: number, from: number, to: number): Promise<void> {
 		return this._db.insert({ user, from, to }).into('friend_notifications');
 	}
@@ -426,10 +538,7 @@ export class DBService {
 			throw new BadRequestException('Invalid user token');
 		}
 
-		await this._db
-			.delete()
-			.from('message_notifications')
-			.where({ user: user.id, channel: channelId });
+		await this._db.delete().from('message_notifications').where({ user: user.id, channel: channelId });
 	}
 
 	private _generateRandomColor(): string {
