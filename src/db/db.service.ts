@@ -98,6 +98,16 @@ export class DBService {
 		});
 	}
 
+	public async updateEmail(token: string, email: string): Promise<void> {
+		const [user] = await this._db.select('id').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		await this._db('users').update({ email }).where({ id: user.id });
+	}
+
 	public async updateUser(token: string, settings: { status?: UserStatus; notifications?: NotificationsSetting; lightMode?: boolean }): Promise<AppUser> {
 		const [user] = await this._db.select('id').from('users').where({ token });
 

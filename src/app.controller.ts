@@ -183,8 +183,13 @@ export class AppController {
 		@Body('token') token: string,
 		@Body('status') status: UserStatus,
 		@Body('notifications') notifications: NotificationsSetting,
-		@Body('lightMode', ParseBoolPipe) lightMode: boolean
+		@Body('lightMode', ParseBoolPipe) lightMode: boolean,
+		@Body('email') email: string
 	): Promise<AppUser> {
+		if (email !== undefined) {
+			await this.dbService.updateEmail(token, email);
+		}
+
 		return this.dbService.updateUser(token, { status, notifications, lightMode });
 	}
 
