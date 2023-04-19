@@ -1,4 +1,5 @@
 export type UserStatus = 'ONLINE' | 'OFFLINE' | 'IDLE' | 'DO_NOT_DISTURB';
+export type NotificationsSetting = 'ALL' | 'MESSAGES' | 'FRIEND_REQ' | 'NONE';
 
 export class User {
 	id: number = -1;

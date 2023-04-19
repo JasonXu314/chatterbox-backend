@@ -6,7 +6,7 @@ import { FriendRequestResponseDTO } from 'src/models/FriendRequest.dto';
 import { Message } from 'src/models/Message.model';
 import { FriendNotificationDTO, FriendNotificationType, MessageNotificationDTO } from 'src/models/Notifications.dto';
 import { CreateUserDTO } from '../models/User.dto';
-import { AppUser, Friend, PublicUser, User, UserStatus } from '../models/User.model';
+import { AppUser, Friend, NotificationsSetting, PublicUser, User, UserStatus } from '../models/User.model';
 
 @Injectable()
 export class DBService {
@@ -98,6 +98,40 @@ export class DBService {
 		});
 	}
 
+	public async updateUser(token: string, settings: { status?: UserStatus; notifications?: NotificationsSetting; lightMode?: boolean }): Promise<AppUser> {
+		const [user] = await this._db.select('id').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		if (settings.status !== undefined) {
+			if (settings.notifications !== undefined || settings.lightMode !== undefined) {
+				await this._db('users').update({ status: settings.status });
+			} else {
+				return this._db.transaction(async (trx) => {
+					await trx('users').update({ status: settings.status }).where({ id: user.id });
+					return (await trx.select('id', 'username', 'token', 'avatar', 'email').from('users').where({ id: user.id }))[0];
+				});
+			}
+		}
+
+		return this._db.transaction(async (trx) => {
+			const updates: any = {};
+
+			if (settings.notifications !== undefined) {
+				// paranoid about undefined stuff being recognized by knex or not, so manually apply updates
+				updates.notifications = settings.notifications;
+			}
+			if (settings.lightMode !== undefined) {
+				updates.lightMode = settings.lightMode;
+			}
+
+			await trx('settings').update(updates).where({ id: user.id });
+			return (await trx.select('id', 'username', 'token', 'avatar', 'email').from('users').where({ id: user.id }))[0];
+		});
+	}
+
 	public async setPassword(token: string, newPassword: string): Promise<void> {
 		const salt = randomBytes(16).toString('hex');
 		const hashedPassword = createHash('sha256')
@@ -186,7 +220,7 @@ export class DBService {
 					this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
 				});
 
-			return friendUsers;
+			return friendUsers.map((friend) => (friend.status === 'INVISIBLE' ? { ...friend, status: 'OFFLINE' } : friend));
 		} else {
 			const id = userTokenOrId;
 			const db = this._db;
@@ -198,7 +232,7 @@ export class DBService {
 					this.on('friend.sender', '=', db.raw('?', [id])).andOn('friend.recipient', '=', 'users.id');
 				});
 
-			return friendUsers;
+			return friendUsers.map((friend) => (friend.status === 'INVISIBLE' ? { ...friend, status: 'OFFLINE' } : friend));
 		}
 	}
 

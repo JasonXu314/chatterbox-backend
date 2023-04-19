@@ -6,6 +6,7 @@ import {
 	InternalServerErrorException,
 	NotFoundException,
 	Param,
+	ParseBoolPipe,
 	ParseIntPipe,
 	Patch,
 	Post,
@@ -25,7 +26,7 @@ import { CreateMessageDTO } from './models/Message.dto';
 import { Message } from './models/Message.model';
 import { FriendNotificationDTO, MessageNotificationDTO } from './models/Notifications.dto';
 import { CreateUserDTO, LoginDTO } from './models/User.dto';
-import { AppUser, Friend, PublicUser } from './models/User.model';
+import { AppUser, Friend, NotificationsSetting, PublicUser, UserStatus } from './models/User.model';
 
 interface SQLError {
 	code: string;
@@ -175,6 +176,16 @@ export class AppController {
 		}
 
 		return { id: user.id, username: user.username, token: user.token, avatar: user.avatar, email: user.email };
+	}
+
+	@Patch('/me')
+	async modifySettings(
+		@Body('token') token: string,
+		@Body('status') status: UserStatus,
+		@Body('notifications') notifications: NotificationsSetting,
+		@Body('lightMode', ParseBoolPipe) lightMode: boolean
+	): Promise<AppUser> {
+		return this.dbService.updateUser(token, { status, notifications, lightMode });
 	}
 
 	@Post('/signup')
