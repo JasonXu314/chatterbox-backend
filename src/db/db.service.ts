@@ -6,7 +6,7 @@ import { FriendRequestResponseDTO } from 'src/models/FriendRequest.dto';
 import { MessageDTO } from 'src/models/Message.dto';
 import { Message } from 'src/models/Message.model';
 import { FriendNotificationDTO, FriendNotificationType, MessageNotificationDTO } from 'src/models/Notifications.dto';
-import { CreateUserDTO } from '../models/User.dto';
+import { CreateUserDTO, FilterMethod } from '../models/User.dto';
 import { AppUser, Friend, NotificationsSetting, PublicUser, User, UserStatus } from '../models/User.model';
 
 @Injectable()
@@ -379,7 +379,7 @@ export class DBService {
 		});
 	}
 
-	public async getBestFriend(token: string): Promise<PublicUser & { channelId: number }> {
+	public async getBestFriend(token: string): Promise<Friend> {
 		const [user] = await this._db.select('id', 'username').from('users').where({ token });
 
 		if (!user) {
@@ -390,7 +390,7 @@ export class DBService {
 
 		return (
 			await this._db
-				.select('users.id', 'username', 'avatar', 'friend.channelId')
+				.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
 				.from('users')
 				.innerJoin('friend', function () {
 					this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
@@ -400,6 +400,34 @@ export class DBService {
 				.groupBy(['users.id', 'friend.channelId'])
 				.orderBy(db.count('messages.id'), 'desc')
 		)[0];
+	}
+
+	public async filterFriends(token: string, filterMethod: FilterMethod): Promise<Friend[]> {
+		const [user] = await this._db.select('id', 'username').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		const db = this._db;
+
+		if (filterMethod === 'RECENTLY_MESSAGED') {
+			return await this._db
+				.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
+				.from('users')
+				.innerJoin('friend', function () {
+					this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+				})
+				.crossJoin('messages', () => {})
+				.whereRaw('users.id = messages.authorId')
+				.groupBy(['users.id', 'friend.channelId'])
+				.orderBy(db.max('messages.createdAt'), 'desc');
+		} else {
+			return await this._db
+				.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
+				.from('users')
+				.orderBy('users.username', filterMethod === 'USERNAME_ASC' ? 'asc' : 'desc');
+		}
 	}
 
 	public async block(token: string, blockedId: number): Promise<void>;

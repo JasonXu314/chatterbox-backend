@@ -1,3 +1,5 @@
+export type FilterMethod = 'RECENTLY_MESSAGED' | 'USERNAME_ASC' | 'USERNAME_DESC';
+
 export class CreateUserDTO {
 	email: string = '';
 	username: string = '';

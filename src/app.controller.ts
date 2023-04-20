@@ -25,7 +25,7 @@ import { FriendRequestResponseDTO } from './models/FriendRequest.dto';
 import { CreateMessageDTO, MessageDTO } from './models/Message.dto';
 import { Message } from './models/Message.model';
 import { FriendNotificationDTO, MessageNotificationDTO } from './models/Notifications.dto';
-import { CreateUserDTO, LoginDTO } from './models/User.dto';
+import { CreateUserDTO, FilterMethod, LoginDTO } from './models/User.dto';
 import { AppUser, Friend, NotificationsSetting, PublicUser, UserStatus } from './models/User.model';
 
 interface SQLError {
@@ -391,8 +391,12 @@ export class AppController {
 	}
 
 	@Get('/friends')
-	async getFriend(@Query('token') userToken: string): Promise<Friend[]> {
-		return this.dbService.getFriends(userToken);
+	async getFriend(@Query('token') userToken: string, @Query('filter') filterMethod: FilterMethod): Promise<Friend[]> {
+		if (filterMethod !== undefined) {
+			return this.dbService.filterFriends(userToken, filterMethod);
+		} else {
+			return this.dbService.getFriends(userToken);
+		}
 	}
 
 	@Post('/request-friend')
