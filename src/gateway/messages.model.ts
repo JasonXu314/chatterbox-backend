@@ -1,8 +1,8 @@
 import { Message } from 'src/models/Message.model';
-import { UserStatus } from 'src/models/User.model';
+import { Friend, PublicUser, UserStatus } from 'src/models/User.model';
 
 export type InboundWSMessage = WSClaimMessage | WSSendMessage;
-export type OutboundWSMessage = WSMessage | WSStatusChangeMessage;
+export type OutboundWSMessage = WSMessage | WSStatusChangeMessage | FriendReqMessage | NewFriendMessage;
 
 export type WSClaimMessage = {
 	type: 'CONNECT';
@@ -24,5 +24,15 @@ export type WSStatusChangeMessage = {
 	type: 'STATUS_CHANGE';
 	id: number;
 	status: UserStatus;
+};
+
+export type FriendReqMessage = {
+	type: 'FRIEND_REQ';
+	from: PublicUser;
+};
+
+export type NewFriendMessage = {
+	type: 'NEW_FRIEND';
+	friend: Friend;
 };
 

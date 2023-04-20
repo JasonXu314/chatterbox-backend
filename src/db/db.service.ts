@@ -319,7 +319,7 @@ export class DBService {
 		}
 	}
 
-	public async acceptFriendRequest(token: string, friendId: number): Promise<PublicUser & { channelId: number }> {
+	public async acceptFriendRequest(token: string, friendId: number): Promise<Friend> {
 		const [user] = await this._db.select('id', 'username').from('users').where({ token });
 
 		if (!user) {
@@ -337,7 +337,7 @@ export class DBService {
 		}
 
 		return this._db.transaction(async (trx) => {
-			const [newFriend] = await trx.select('id', 'username', 'avatar').from('users').where({ id: request.fromId });
+			const [newFriend] = await trx.select('id', 'username', 'avatar', 'status').from('users').where({ id: request.fromId });
 
 			const [channelId] = await trx.insert({ name: `${newFriend.username}-${user.username}`, type: 'direct' }).into('channels');
 			await trx.insert({ sender: newFriend.id, recipient: user.id, channelId }).into('friend');
@@ -540,9 +540,18 @@ export class DBService {
 							from: (await this._db.select('id', 'username', 'avatar').from('users').where({ id: from }))[0]
 						};
 					} else if (user === from) {
+						const db = this._db;
 						return {
 							type: 'NEW_FRIEND',
-							to: (await this._db.select('id', 'username', 'avatar').from('users').where({ id: to }))[0]
+							to: (
+								await this._db
+									.select('id', 'username', 'avatar', 'status', 'channelId')
+									.from('users')
+									.innerJoin('friend', function () {
+										this.on('users.id', '=', 'friend.sender').andOn('friend.recipient', '=', db.raw('?', to));
+									})
+									.where({ id: to })
+							)[0]
 						};
 					} else {
 						return null;

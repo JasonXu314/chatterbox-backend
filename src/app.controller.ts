@@ -406,6 +406,9 @@ export class AppController {
 
 				if (!this.gatewayService.isOnline(friend.id)) {
 					await this.dbService.makeFriendNotification(friendId, user.id, friendId);
+				} else {
+					const { id, avatar, username } = user;
+					this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
 				}
 			}
 		} else if (username) {
@@ -417,6 +420,9 @@ export class AppController {
 
 				if (!this.gatewayService.isOnline(friend.id)) {
 					await this.dbService.makeFriendNotification(friend.id, user.id, friend.id);
+				} else {
+					const { id, avatar, username } = user;
+					this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
 				}
 			}
 		} else {
@@ -425,8 +431,18 @@ export class AppController {
 	}
 
 	@Post('/accept-request')
-	async accept(@Body('token') userToken: string, @Body('id') friendId: number): Promise<PublicUser & { channelId: number }> {
-		return this.dbService.acceptFriendRequest(userToken, friendId);
+	async accept(@Body('token') userToken: string, @Body('id') friendId: number): Promise<Friend> {
+		const newFriend = await this.dbService.acceptFriendRequest(userToken, friendId),
+			user = (await this.dbService.getUserByToken(userToken))!;
+
+		if (this.gatewayService.isOnline(newFriend.id)) {
+			const userAsFriend = (await this.dbService.getFriends(newFriend.id)).filter((friend) => friend.id === user.id)[0];
+			this.gatewayService.notify({ type: 'NEW_FRIEND', friend: userAsFriend }, newFriend.id);
+		} else {
+			this.dbService.makeFriendNotification(newFriend.id, newFriend.id, user.id);
+		}
+
+		return newFriend;
 	}
 
 	@Post('/reject-request')

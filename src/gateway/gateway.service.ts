@@ -81,6 +81,12 @@ export class GatewayService {
 		}
 	}
 
+	public notify(message: OutboundWSMessage, recipient: number): void {
+		if (this._userToSocket.has(recipient)) {
+			this._userToSocket.get(recipient)!.send(JSON.stringify(message));
+		}
+	}
+
 	public broadcast(message: OutboundWSMessage): void {
 		this._userToSocket.forEach((socket) => {
 			socket.send(JSON.stringify(message));
