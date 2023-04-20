@@ -1,4 +1,4 @@
-import { Message } from 'src/models/Message.model';
+import { MessageDTO } from 'src/models/Message.dto';
 import { Friend, PublicUser, UserStatus } from 'src/models/User.model';
 
 export type InboundWSMessage = WSClaimMessage | WSSendMessage;
@@ -17,7 +17,7 @@ export type WSSendMessage = {
 
 export type WSMessage = {
 	type: 'MESSAGE';
-	message: Message;
+	message: MessageDTO;
 };
 
 export type WSStatusChangeMessage = {

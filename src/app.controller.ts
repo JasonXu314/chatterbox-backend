@@ -22,7 +22,7 @@ import { DBService } from './db/db.service';
 import { GatewayService } from './gateway/gateway.service';
 import { Channel } from './models/Channel.model';
 import { FriendRequestResponseDTO } from './models/FriendRequest.dto';
-import { CreateMessageDTO } from './models/Message.dto';
+import { CreateMessageDTO, MessageDTO } from './models/Message.dto';
 import { Message } from './models/Message.model';
 import { FriendNotificationDTO, MessageNotificationDTO } from './models/Notifications.dto';
 import { CreateUserDTO, LoginDTO } from './models/User.dto';
@@ -326,7 +326,7 @@ export class AppController {
 	}
 
 	@Post('/create-message')
-	async createMessage(@Body() messageInfo: CreateMessageDTO): Promise<Message> {
+	async createMessage(@Body() messageInfo: CreateMessageDTO): Promise<MessageDTO> {
 		const author = await this.dbService.getUserByToken(messageInfo.token);
 
 		if (!author) {

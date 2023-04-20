@@ -3,6 +3,7 @@ import { createHash, randomBytes } from 'crypto';
 import { Knex, knex } from 'knex';
 import { Channel } from 'src/models/Channel.model';
 import { FriendRequestResponseDTO } from 'src/models/FriendRequest.dto';
+import { MessageDTO } from 'src/models/Message.dto';
 import { Message } from 'src/models/Message.model';
 import { FriendNotificationDTO, FriendNotificationType, MessageNotificationDTO } from 'src/models/Notifications.dto';
 import { CreateUserDTO } from '../models/User.dto';
@@ -170,7 +171,7 @@ export class DBService {
 		return this._db<Message>('messages').where({ channelId });
 	}
 
-	public async createMessage(author: User, content: string, channelId: number): Promise<Message> {
+	public async createMessage(author: User, content: string, channelId: number): Promise<MessageDTO> {
 		const newMessage: Omit<Message, 'id' | 'createdAt'> = {
 			channelId,
 			authorId: author.id,
@@ -180,7 +181,9 @@ export class DBService {
 		return this._db.transaction(async (trx) => {
 			const [id] = await trx.insert(newMessage).into('messages');
 
-			return trx<Message>('messages').where({ id }).first() as Promise<Message>;
+			const msg = await (trx<Message>('messages').where({ id }).first() as Promise<Message>);
+			const author = await trx.select('id', 'username', 'avatar').from('users').where({ id: msg.authorId }).first();
+			return { ...msg, author };
 		});
 	}
 
