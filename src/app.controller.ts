@@ -391,9 +391,9 @@ export class AppController {
 	}
 
 	@Get('/friends')
-	async getFriend(@Query('token') userToken: string, @Query('filter') filterMethod: FilterMethod): Promise<Friend[]> {
+	async getFriend(@Query('token') userToken: string, @Query('filter') filterMethod: FilterMethod, @Query('query') query: string): Promise<Friend[]> {
 		if (filterMethod !== undefined) {
-			return this.dbService.filterFriends(userToken, filterMethod);
+			return this.dbService.filterFriends(userToken, filterMethod, query);
 		} else {
 			return this.dbService.getFriends(userToken);
 		}

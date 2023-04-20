@@ -402,7 +402,7 @@ export class DBService {
 		)[0];
 	}
 
-	public async filterFriends(token: string, filterMethod: FilterMethod): Promise<Friend[]> {
+	public async filterFriends(token: string, filterMethod: FilterMethod, query?: string): Promise<Friend[]> {
 		const [user] = await this._db.select('id', 'username').from('users').where({ token });
 
 		if (!user) {
@@ -423,10 +423,24 @@ export class DBService {
 				.groupBy(['users.id', 'friend.channelId'])
 				.orderBy(db.max('messages.createdAt'), 'desc');
 		} else {
-			return await this._db
-				.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
-				.from('users')
-				.orderBy('users.username', filterMethod === 'USERNAME_ASC' ? 'asc' : 'desc');
+			if (query !== undefined) {
+				return await this._db
+					.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
+					.from('users')
+					.innerJoin('friend', function () {
+						this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+					})
+					.where(this._db.raw('lower(username)'), 'like', `${query.toLowerCase()}%`)
+					.orderBy('users.username', filterMethod === 'USERNAME_ASC' ? 'asc' : 'desc');
+			} else {
+				return await this._db
+					.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
+					.from('users')
+					.innerJoin('friend', function () {
+						this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+					})
+					.orderBy('users.username', filterMethod === 'USERNAME_ASC' ? 'asc' : 'desc');
+			}
 		}
 	}
 
