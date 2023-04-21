@@ -77,18 +77,46 @@ export class AppController {
 								<td>email</td>
 								<td>avatar</td>
 								<td>status</td>
+								<td>token</td>
 							</tr>
 						</thead>
 						<tbody>
 							${(await this.dbService.getUsers())
 								.map(
-									({ id, username, email, avatar, status }) => `
+									({ id, username, email, avatar, status, token }) => `
 								<tr>
 									<td>${id}</td>
 									<td>${username}</td>
 									<td>${email}</td>
 									<td>${avatar}</td>
 									<td>${status}</td>
+									<td>${token}</td>
+								</tr>`
+								)
+								.join('')}
+						</tbody>
+					</table>
+					<h1>Notifications</h1>
+					<table>
+						<thead>
+							<tr>
+								<td>User ID</td>
+								<td>Channel ID</td>
+								<td>count</td>
+								<td>from</td>
+								<td>to</td>
+							</tr>
+						</thead>
+						<tbody>
+							${(await this.dbService.getAllNotifications())
+								.map(
+									({ user, channelId, count, from, to }: any) => `
+								<tr>
+									<td>${user}</td>
+									<td>${channelId}</td>
+									<td>${count}</td>
+									<td>${from}</td>
+									<td>${to}</td>
 								</tr>`
 								)
 								.join('')}

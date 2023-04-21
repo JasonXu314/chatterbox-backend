@@ -6,6 +6,7 @@ import { FriendRequestResponseDTO } from 'src/models/FriendRequest.dto';
 import { MessageDTO } from 'src/models/Message.dto';
 import { Message } from 'src/models/Message.model';
 import { FriendNotificationDTO, FriendNotificationType, MessageNotificationDTO } from 'src/models/Notifications.dto';
+import { FriendNotification, MessageNotification } from 'src/models/Notifications.model';
 import { CreateUserDTO, FilterMethod } from '../models/User.dto';
 import { AppUser, Friend, NotificationsSetting, PublicUser, User, UserStatus } from '../models/User.model';
 
@@ -71,6 +72,12 @@ export class DBService {
 
 	public async setStatus(id: number, status: UserStatus): Promise<void> {
 		await this._db('users').update({ status }).where({ id });
+	}
+
+	public async getAllNotifications(): Promise<(FriendNotification | MessageNotification)[]> {
+		const fns = await this._db('friend_notifications');
+		const mns = await this._db('message_notifications');
+		return [...fns, ...mns];
 	}
 
 	public async createUser(user: CreateUserDTO): Promise<User> {
