@@ -14,5 +14,5 @@ export class User {
 
 export type AppUser = Pick<User, 'id' | 'username' | 'token' | 'avatar' | 'email'>;
 export type PublicUser = Pick<User, 'id' | 'username' | 'avatar'>;
-export type Friend = PublicUser & { status: UserStatus; channelId: number };
+export type Friend = PublicUser & { status: UserStatus; channelId: number; unread: number };
 

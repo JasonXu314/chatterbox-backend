@@ -234,25 +234,49 @@ export class DBService {
 			const db = this._db;
 
 			const friendUsers = await this._db
-				.select('users.id', 'users.username', 'users.avatar', 'users.status', 'friend.channelId')
+				.select(
+					'users.id',
+					'users.username',
+					'users.avatar',
+					'users.status',
+					'friend.channelId',
+					this._db.raw('message_notifications.count as unread')
+				)
 				.from('users')
 				.innerJoin('friend', function () {
 					this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+				})
+				.leftJoin('message_notifications', function () {
+					this.on('message_notifications.user', '=', 'users.id').andOn('message_notifications.channelId', '=', 'friend.channelId');
 				});
 
-			return friendUsers.map((friend) => (friend.status === 'INVISIBLE' ? { ...friend, status: 'OFFLINE' } : friend));
+			return friendUsers
+				.map((friend) => (friend.unread === null ? { ...friend, unread: 0 } : friend))
+				.map((friend) => (friend.status === 'INVISIBLE' ? { ...friend, status: 'OFFLINE' } : friend));
 		} else {
 			const id = userTokenOrId;
 			const db = this._db;
 
 			const friendUsers = await this._db
-				.select('users.id', 'users.username', 'users.avatar', 'users.status', 'friend.channelId')
+				.select(
+					'users.id',
+					'users.username',
+					'users.avatar',
+					'users.status',
+					'friend.channelId',
+					this._db.raw('message_notifications.count as unread')
+				)
 				.from('users')
 				.innerJoin('friend', function () {
 					this.on('friend.sender', '=', db.raw('?', [id])).andOn('friend.recipient', '=', 'users.id');
+				})
+				.leftJoin('message_notifications', function () {
+					this.on('message_notifications.user', '=', 'users.id').andOn('message_notifications.channelId', '=', 'friend.channelId');
 				});
 
-			return friendUsers.map((friend) => (friend.status === 'INVISIBLE' ? { ...friend, status: 'OFFLINE' } : friend));
+			return friendUsers
+				.map((friend) => (friend.unread === null ? { ...friend, unread: 0 } : friend))
+				.map((friend) => (friend.status === 'INVISIBLE' ? { ...friend, status: 'OFFLINE' } : friend));
 		}
 	}
 
