@@ -62,6 +62,8 @@ export class GatewayService {
 		if (userId !== undefined) {
 			this._socketToUser.delete(socket);
 			this._userToSocket.delete(userId);
+			this._statuses.set(userId, 'OFFLINE');
+			this.dbService.setStatus(userId, 'OFFLINE');
 
 			const msg: WSStatusChangeMessage = {
 				type: 'STATUS_CHANGE',
