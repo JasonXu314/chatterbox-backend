@@ -4,7 +4,7 @@ export async function up(knex: Knex): Promise<void> {
 	await knex.schema.createTable('friend', (table) => {
 		table.increments('sender', { primaryKey: false }).references('users.id');
 		table.increments('recipient', { primaryKey: false }).references('users.id');
-		table.increments('channelId', { primaryKey: false }).references('channels.id');
+		table.increments('channelId', { primaryKey: false }).references('channels.id').onDelete('cascade');
 	});
 
 	await knex.schema.createTable('blocked', (table) => {

@@ -485,6 +485,18 @@ export class DBService {
 		}
 	}
 
+	public async getBlocked(token: string): Promise<PublicUser> {
+		const user = await this._db.select('id').from('users').where({ token }).first();
+		const db = this._db;
+
+		return this._db
+			.select('id', 'username', 'avatar')
+			.from('users')
+			.innerJoin('blocked', function () {
+				this.on('users.id', '=', 'blocked.blocked').andOn('blocked.blocker', '=', db.raw('?', user.id));
+			});
+	}
+
 	public async block(token: string, blockedId: number): Promise<void>;
 	public async block(token: string, username: string): Promise<void>;
 	public async block(token: string, idOrUsername: number | string): Promise<void> {
@@ -514,7 +526,18 @@ export class DBService {
 			}
 
 			return this._db.transaction(async (trx) => {
+				const [friendship] = await trx.select('channelId').from('friend').where({ sender: user.id, recipient: blockee.id });
+				await trx.delete().from('channels').where({ id: friendship.channelId });
+				await trx.delete().from('friend').where({ sender: user.id, recipient: blockee.id }).orWhere({ sender: blockee.id, recipient: user.id });
+				await trx.delete().from('friend_request').where({ fromId: user.id, toId: blockee.id }).orWhere({ fromId: blockee.id, toId: user.id });
 				await trx<{ blocker: number; blocked: number }>('blocked').insert({ blocker: user.id, blocked: blockee.id });
+				await trx
+					.delete()
+					.from('friend_notifications')
+					.where({ user: user.id, from: user.id, to: blockee.id })
+					.orWhere({ user: user.id, from: blockee.id, to: user.id })
+					.where({ user: blockee.id, from: user.id, to: blockee.id })
+					.orWhere({ user: blockee.id, from: blockee.id, to: user.id });
 			});
 		} else {
 			const blockedId = idOrUsername;
@@ -536,6 +559,17 @@ export class DBService {
 			}
 
 			return this._db.transaction(async (trx) => {
+				const [friendship] = await trx.select('channelId').from('friend').where({ sender: user.id, recipient: blockedId });
+				await trx.delete().from('channels').where({ id: friendship.channelId });
+				await trx.delete().from('friend').where({ sender: user.id, recipient: blockedId }).orWhere({ sender: blockedId, recipient: user.id });
+				await trx.delete().from('friend_request').where({ fromId: user.id, toId: blockedId }).orWhere({ fromId: blockedId, toId: user.id });
+				await trx
+					.delete()
+					.from('friend_notifications')
+					.where({ user: user.id, from: user.id, to: blockedId })
+					.orWhere({ user: user.id, from: blockedId, to: user.id })
+					.where({ user: blockedId, from: user.id, to: blockedId })
+					.orWhere({ user: blockedId, from: blockedId, to: user.id });
 				await trx<{ blocker: number; blocked: number }>('blocked').insert({ blocker: user.id, blocked: blockedId });
 			});
 		}

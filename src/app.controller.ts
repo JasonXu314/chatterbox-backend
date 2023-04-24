@@ -496,6 +496,11 @@ export class AppController {
 		return this.dbService.getBestFriend(userToken);
 	}
 
+	@Get('/blocked')
+	async getBlocked(@Query('token') token: string): Promise<PublicUser> {
+		return this.dbService.getBlocked(token);
+	}
+
 	@Post('/block')
 	async blockUser(@Body('token') token: string, @Body('id', ParseIntPipe) blockedId: number, @Body('username') username: string): Promise<void> {
 		if (blockedId !== undefined) {
