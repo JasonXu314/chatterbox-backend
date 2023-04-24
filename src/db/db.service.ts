@@ -116,6 +116,16 @@ export class DBService {
 		await this._db('users').update({ email }).where({ id: user.id });
 	}
 
+	public async updateUsername(token: string, username: string): Promise<void> {
+		const [user] = await this._db.select('id').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		await this._db('users').update({ username }).where({ id: user.id });
+	}
+
 	public async updateUser(token: string, settings: { status?: UserStatus; notifications?: NotificationsSetting; lightMode?: boolean }): Promise<AppUser> {
 		const [user] = await this._db.select('id').from('users').where({ token });
 
@@ -624,7 +634,7 @@ export class DBService {
 									.select('id', 'username', 'avatar', 'status', 'channelId')
 									.from('users')
 									.innerJoin('friend', function () {
-										this.on('users.id', '=', 'friend.sender').andOn('friend.recipient', '=', db.raw('?', to));
+										this.on('users.id', '=', 'friend.recipient').andOn('friend.sender', '=', db.raw('?', from));
 									})
 									.where({ id: to })
 							)[0]
@@ -634,7 +644,7 @@ export class DBService {
 					}
 				})
 			)
-		).filter((val) => val !== null) as FriendNotificationDTO[];
+		).filter((val): val is FriendNotificationDTO => val !== null);
 
 		const messageNotifications = await this._db
 			.select('channels.id', 'channels.name', 'channels.type', 'count')
@@ -667,7 +677,7 @@ export class DBService {
 			throw new BadRequestException('Invalid user token');
 		}
 
-		await this._db.delete().from('message_notifications').where({ user: user.id, channel: channelId });
+		await this._db.delete().from('message_notifications').where({ user: user.id, channelId });
 	}
 
 	private _generateRandomColor(): string {

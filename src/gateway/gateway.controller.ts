@@ -101,6 +101,9 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 					client.close(5000, 'Socket not mapped to user');
 				}
 				break;
+			case 'PING':
+				client.send(JSON.stringify({ type: 'PONG' }));
+				break;
 			default:
 				this.gatewayService.logEvent({ event: 'kill', message: `Invalid message type (${JSON.stringify(msg)})` });
 				client.close(4000, 'Invalid message type');

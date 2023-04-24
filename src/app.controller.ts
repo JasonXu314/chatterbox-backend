@@ -6,13 +6,13 @@ import {
 	InternalServerErrorException,
 	NotFoundException,
 	Param,
-	ParseBoolPipe,
 	ParseIntPipe,
 	Patch,
 	Post,
 	Query,
 	UploadedFile,
-	UseInterceptors
+	UseInterceptors,
+	ValidationPipe
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as sgMail from '@sendgrid/mail';
@@ -24,7 +24,7 @@ import { Channel } from './models/Channel.model';
 import { FriendRequestResponseDTO } from './models/FriendRequest.dto';
 import { CreateMessageDTO, MessageDTO } from './models/Message.dto';
 import { Message } from './models/Message.model';
-import { FriendNotificationDTO, MessageNotificationDTO } from './models/Notifications.dto';
+import { ClearNotificationDTO, FriendNotificationDTO, MessageNotificationDTO } from './models/Notifications.dto';
 import { CreateUserDTO, FilterMethod, LoginDTO } from './models/User.dto';
 import { AppUser, Friend, NotificationsSetting, PublicUser, UserStatus } from './models/User.model';
 
@@ -42,9 +42,6 @@ export class AppController {
 	private readonly _timeouts: Map<string, NodeJS.Timeout> = new Map();
 
 	constructor(private readonly dbService: DBService, private readonly gatewayService: GatewayService, private readonly cdnService: CDNService) {}
-
-	@Post('/keepalive')
-	keepalive(): void {}
 
 	@Get('/admin-panel')
 	async adminPanel() {
@@ -214,14 +211,18 @@ export class AppController {
 		@Body('token') token: string,
 		@Body('status') status: UserStatus,
 		@Body('notifications') notifications: NotificationsSetting,
-		@Body('lightMode', ParseBoolPipe) lightMode: boolean,
-		@Body('email') email: string
+		@Body('lightMode') lightMode: string,
+		@Body('email') email: string,
+		@Body('username') username: string
 	): Promise<AppUser> {
 		if (email !== undefined) {
 			await this.dbService.updateEmail(token, email);
 		}
+		if (username !== undefined) {
+			await this.dbService.updateUsername(token, username);
+		}
 
-		return this.dbService.updateUser(token, { status, notifications, lightMode });
+		return this.dbService.updateUser(token, { status, notifications, lightMode: lightMode === 'true' });
 	}
 
 	@Post('/signup')
@@ -523,18 +524,13 @@ export class AppController {
 	}
 
 	@Post('/clear-notification')
-	async clearNotification(
-		@Body('token') userToken: string,
-		@Body('channel', ParseIntPipe) channel?: number,
-		@Body('from', ParseIntPipe) from?: number,
-		@Body('to', ParseIntPipe) to?: number
-	): Promise<void> {
+	async clearNotification(@Body(new ValidationPipe({ skipUndefinedProperties: true })) { token, channel, from, to }: ClearNotificationDTO): Promise<void> {
 		if (channel !== undefined) {
-			return this.dbService.clearMessageNotification(userToken, channel);
+			return this.dbService.clearMessageNotification(token, channel);
 		} else if (from !== undefined) {
-			return this.dbService.clearFriendNotification(userToken, 'INCOMING_REQUEST', from);
+			return this.dbService.clearFriendNotification(token, 'INCOMING_REQUEST', from);
 		} else if (to !== undefined) {
-			return this.dbService.clearFriendNotification(userToken, 'NEW_FRIEND', to);
+			return this.dbService.clearFriendNotification(token, 'NEW_FRIEND', to);
 		} else {
 			throw new BadRequestException(
 				'Needs one of: the channel to clear message notifications from, the id of the user who sent a friend request, or the id of the new friend'

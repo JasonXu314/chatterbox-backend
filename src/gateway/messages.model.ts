@@ -1,7 +1,7 @@
 import { MessageDTO } from 'src/models/Message.dto';
 import { Friend, PublicUser, UserStatus } from 'src/models/User.model';
 
-export type InboundWSMessage = WSClaimMessage | WSSendMessage;
+export type InboundWSMessage = WSClaimMessage | WSSendMessage | WSPingMessage;
 export type OutboundWSMessage = WSMessage | WSStatusChangeMessage | FriendReqMessage | NewFriendMessage;
 
 export type WSClaimMessage = {
@@ -13,6 +13,10 @@ export type WSSendMessage = {
 	type: 'SEND';
 	message: string;
 	channelId: number;
+};
+
+export type WSPingMessage = {
+	type: 'PING';
 };
 
 export type WSMessage = {
