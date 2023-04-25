@@ -367,12 +367,12 @@ export class AppController {
 
 		const newMessage = await this.dbService.createMessage(author, messageInfo.content, messageInfo.channelId);
 
-		this.gatewayService.broadcast({ type: 'MESSAGE', message: newMessage });
-
-		const users = await this.dbService.getUsers();
+		const users = (await this.dbService.getRecipients(messageInfo.channelId)).filter((user) => user.id !== author.id);
 		users.forEach((user) => {
 			if (!this.gatewayService.isOnline(user.id)) {
 				this.dbService.makeMessageNotification(user.id, messageInfo.channelId);
+			} else {
+				this.gatewayService.notify({ type: 'MESSAGE', message: newMessage }, user.id);
 			}
 		});
 

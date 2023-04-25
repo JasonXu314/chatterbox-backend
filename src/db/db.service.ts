@@ -229,6 +229,16 @@ export class DBService {
 			});
 	}
 
+	public async getRecipients(channelId: number): Promise<PublicUser[]> {
+		const db = this._db;
+		return this._db
+			.select('id', 'username', 'avatar')
+			.from('users')
+			.innerJoin('channel_access', function () {
+				this.on('channel_access.channelId', '=', db.raw('?', [channelId])).andOn('channel_access.userId', '=', 'users.id');
+			});
+	}
+
 	public async getFriends(id: number): Promise<Friend[]>;
 	public async getFriends(userToken: string): Promise<Friend[]>;
 	public async getFriends(userTokenOrId: string | number): Promise<Friend[]> {
