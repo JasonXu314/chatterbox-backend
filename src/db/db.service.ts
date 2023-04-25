@@ -464,33 +464,91 @@ export class DBService {
 
 		if (filterMethod === 'RECENTLY_MESSAGED') {
 			return await this._db
-				.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
-				.from('users')
-				.innerJoin('friend', function () {
-					this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
-				})
-				.crossJoin('messages', () => {})
-				.whereRaw('users.id = messages.authorId')
-				.groupBy(['users.id', 'friend.channelId'])
-				.orderBy(db.max('messages.createdAt'), 'desc');
+				.select(
+					'filtered_friends.id',
+					'filtered_friends.username',
+					'filtered_friends.avatar',
+					'filtered_friends.status',
+					'filtered_friends.channelId',
+					this._db.raw('message_notifications.count as unread')
+				)
+				.from(
+					this._db
+						.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
+						.from('users')
+						.innerJoin('friend', function () {
+							this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+						})
+						.leftOuterJoin('messages', function () {
+							this.on('friend.channelId', '=', 'messages.channelId');
+						})
+						.groupBy(['users.id', 'friend.channelId'])
+						.orderBy(db.max('messages.createdAt'), 'desc')
+						.as('filtered_friends')
+				)
+				.leftJoin('message_notifications', function () {
+					this.on('filtered_friends.channelId', '=', 'message_notifications.channelId').andOn(
+						'message_notifications.user',
+						'=',
+						db.raw('?', user.id)
+					);
+				});
 		} else {
 			if (query !== undefined) {
 				return await this._db
-					.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
-					.from('users')
-					.innerJoin('friend', function () {
-						this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+					.select(
+						'filtered_friends.id',
+						'filtered_friends.username',
+						'filtered_friends.avatar',
+						'filtered_friends.status',
+						'filtered_friends.channelId',
+						this._db.raw('message_notifications.count as unread')
+					)
+					.from(
+						this._db
+							.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
+							.from('users')
+							.innerJoin('friend', function () {
+								this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+							})
+							.where(this._db.raw('lower(username)'), 'like', `${query.toLowerCase()}%`)
+							.as('filtered_friends')
+					)
+					.leftJoin('message_notifications', function () {
+						this.on('filtered_friends.channelId', '=', 'message_notifications.channelId').andOn(
+							'message_notifications.user',
+							'=',
+							db.raw('?', user.id)
+						);
 					})
-					.where(this._db.raw('lower(username)'), 'like', `${query.toLowerCase()}%`)
-					.orderBy('users.username', filterMethod === 'USERNAME_ASC' ? 'asc' : 'desc');
+					.orderBy('filtered_friends.username', filterMethod === 'USERNAME_ASC' ? 'asc' : 'desc');
 			} else {
 				return await this._db
-					.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
-					.from('users')
-					.innerJoin('friend', function () {
-						this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+					.select(
+						'filtered_friends.id',
+						'filtered_friends.username',
+						'filtered_friends.avatar',
+						'filtered_friends.status',
+						'filtered_friends.channelId',
+						this._db.raw('message_notifications.count as unread')
+					)
+					.from(
+						this._db
+							.select('users.id', 'username', 'avatar', 'status', 'friend.channelId')
+							.from('users')
+							.innerJoin('friend', function () {
+								this.on('friend.sender', '=', db.raw('?', [user.id])).andOn('friend.recipient', '=', 'users.id');
+							})
+							.as('filtered_friends')
+					)
+					.leftJoin('message_notifications', function () {
+						this.on('filtered_friends.channelId', '=', 'message_notifications.channelId').andOn(
+							'message_notifications.user',
+							'=',
+							db.raw('?', user.id)
+						);
 					})
-					.orderBy('users.username', filterMethod === 'USERNAME_ASC' ? 'asc' : 'desc');
+					.orderBy('filtered_friends.username', filterMethod === 'USERNAME_ASC' ? 'asc' : 'desc');
 			}
 		}
 	}
