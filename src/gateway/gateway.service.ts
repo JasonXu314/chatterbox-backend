@@ -10,7 +10,8 @@ export type LogEntry =
 	| { event: 'close'; message: string }
 	| { event: 'kill'; message: string }
 	| { event: 'error'; message: string }
-	| { event: 'connected'; message: string };
+	| { event: 'connected'; message: string }
+	| { event: 'opened'; message: string };
 
 @Injectable()
 export class GatewayService {

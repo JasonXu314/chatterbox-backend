@@ -42,6 +42,8 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 			this.gatewayService.logEvent({ event: 'kill', message: `Socket timeout, timeout ${timeoutId}` });
 			client.close(4000, 'Timed out');
 		}, 5000);
+
+		this.gatewayService.logEvent({ event: 'opened', message: `Socket opened, timeout ${timeoutId}` });
 	}
 
 	private async authClient(client: WebSocket, connectMessage: WSClaimMessage): Promise<boolean> {
