@@ -137,7 +137,7 @@ export class AppController {
 							${this.gatewayService
 								.getMessageLog()
 								.map(
-									({ event, message }) => `
+									({ event, message, ...others }) => `
 								<tr>
 									<td>${event}</td>
 									<td>${
@@ -147,6 +147,7 @@ export class AppController {
 													.map(([key, value]) => `${key}: ${value}`)
 													.join(', ')
 									}</td>
+									${'timestamp' in others ? `<td>${others.timestamp.toLocaleString()}</td>` : ''}
 								</tr>`
 								)
 								.join('')}

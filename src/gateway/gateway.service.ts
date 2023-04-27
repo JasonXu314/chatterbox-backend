@@ -6,9 +6,9 @@ import { InboundWSMessage, OutboundWSMessage, WSStatusChangeMessage } from './me
 
 export type LogEntry =
 	| { event: 'send'; message: OutboundWSMessage }
-	| { event: 'recv'; message: InboundWSMessage }
-	| { event: 'close'; message: string }
-	| { event: 'kill'; message: string }
+	| { event: 'recv'; message: InboundWSMessage; timestamp: Date }
+	| { event: 'close'; message: string, timestamp: Date }
+	| { event: 'kill'; message: string, timestamp: Date }
 	| { event: 'error'; message: string }
 	| { event: 'connected'; message: string }
 	| { event: 'opened'; message: string };
