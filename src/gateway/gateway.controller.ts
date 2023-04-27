@@ -24,6 +24,7 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 					const success = await this.authClient(client, msg);
 
 					if (success) {
+						this.gatewayService.logEvent({ event: 'connected', message: `Socket connect, timeout ${timeoutId}` });
 						clearTimeout(timeoutId);
 					}
 
@@ -38,7 +39,7 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 		client.addEventListener('message', listener, { once: true });
 
 		timeoutId = setTimeout(() => {
-			this.gatewayService.logEvent({ event: 'kill', message: 'Socket timeout' });
+			this.gatewayService.logEvent({ event: 'kill', message: `Socket timeout, timeout ${timeoutId}` });
 			client.close(4000, 'Timed out');
 		}, 5000);
 	}
