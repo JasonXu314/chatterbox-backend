@@ -9,7 +9,8 @@ export type LogEntry =
 	| { event: 'recv'; message: InboundWSMessage }
 	| { event: 'close'; message: string }
 	| { event: 'kill'; message: string }
-	| { event: 'error'; message: string };
+	| { event: 'error'; message: string }
+	| { event: 'connected'; message: string };
 
 @Injectable()
 export class GatewayService {
