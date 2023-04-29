@@ -171,7 +171,16 @@ export class DBService {
 			}
 
 			await trx('settings').update(updates).where({ id: user.id });
-			return (await trx.select('id', 'username', 'token', 'avatar', 'email').from('users').where({ id: user.id }))[0];
+			const { id, username, avatar, email, status, notifications, lightMode } = await trx
+				.select('*')
+				.from('users')
+				.innerJoin('settings', function () {
+					this.on('users.id', '=', 'settings.id');
+				})
+				.where({ token })
+				.first();
+
+			return { id, username, token, avatar, email, status, settings: { notifications, lightMode } };
 		});
 	}
 
