@@ -210,6 +210,7 @@ export class AppController {
 			token: user.token,
 			avatar: user.avatar,
 			email: user.email,
+			status: user.status,
 			settings: { notifications: user.notifications, lightMode: user.lightMode }
 		};
 	}
@@ -236,7 +237,7 @@ export class AppController {
 	@Post('/signup')
 	async createUser(@Body() user: CreateUserDTO): Promise<AppUser> {
 		try {
-			const { id, username, token, avatar, email } = await this.dbService.createUser(user);
+			const { id, username, token, avatar, email, status } = await this.dbService.createUser(user);
 
 			sgMail.send({
 				to: email,
@@ -246,7 +247,7 @@ export class AppController {
 				html: '<span>Thank you for signing up with <strong>ChatterBox</strong>!</span>'
 			});
 
-			return { id, username, token, avatar, email, settings: { notifications: 'ALL', lightMode: false } };
+			return { id, username, token, avatar, email, status, settings: { notifications: 'ALL', lightMode: false } };
 		} catch (e: unknown) {
 			const err = e as SQLError;
 
@@ -288,6 +289,7 @@ export class AppController {
 			token: user.token,
 			avatar: user.avatar,
 			email: user.email,
+			status: user.status,
 			settings: { notifications: user.notifications, lightMode: !!user.lightMode }
 		};
 	}
