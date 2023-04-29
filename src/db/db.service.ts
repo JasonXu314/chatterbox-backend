@@ -72,7 +72,7 @@ export class DBService {
 	}
 
 	public async getUserByEmail(email: string): Promise<(User & Settings) | null> {
-		const [user] = await this._db
+		const user = await this._db
 			.select('*')
 			.from('users')
 			.innerJoin('settings', function () {
