@@ -232,7 +232,9 @@ export class DBService {
 
 			const msg = await (trx<Message>('messages').where({ id }).first() as Promise<Message>);
 			const author = await trx.select('id', 'username', 'avatar').from('users').where({ id: msg.authorId }).first();
-			return { ...msg, author };
+			const channel = await trx.select('id', 'name', 'type').from('channels').where({ id: channelId }).first();
+
+			return { ...msg, author, channel };
 		});
 	}
 
