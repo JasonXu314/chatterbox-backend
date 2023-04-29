@@ -288,7 +288,7 @@ export class AppController {
 			token: user.token,
 			avatar: user.avatar,
 			email: user.email,
-			settings: { notifications: user.notifications, lightMode: user.lightMode }
+			settings: { notifications: user.notifications, lightMode: !!user.lightMode }
 		};
 	}
 

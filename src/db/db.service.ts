@@ -112,6 +112,7 @@ export class DBService {
 
 		return this._db.transaction(async (trx) => {
 			const [id] = await trx.insert(newUser).into('users');
+			await trx.insert({ id, notifications: 'ALL', lightMode: false }).into('settings');
 
 			const publicChannels = await trx.select('id').from('channels').where({ type: 'public' });
 			await trx.insert(publicChannels.map((channel) => ({ userId: id, channelId: channel.id }))).into('channel_access');
