@@ -547,7 +547,10 @@ export class AppController {
 
 	@Get('/unreads')
 	async getNumUnreads(@Query('token') token: string): Promise<number> {
-		return (await this.dbService.getNotifications(token)).reduce((total, notif) => ('count' in notif ? total + notif.count : total), 0);
+		return (await this.dbService.getNotifications(token)).reduce(
+			(total, notif) => ('count' in notif && notif.channel!.type !== 'public' ? total + notif.count : total),
+			0
+		);
 	}
 
 	@Post('/clear-notification')
