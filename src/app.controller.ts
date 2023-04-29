@@ -23,7 +23,6 @@ import { GatewayService } from './gateway/gateway.service';
 import { Channel } from './models/Channel.model';
 import { FriendRequestResponseDTO } from './models/FriendRequest.dto';
 import { CreateMessageDTO, MessageDTO } from './models/Message.dto';
-import { Message } from './models/Message.model';
 import { ClearNotificationDTO, FriendNotificationDTO, MessageNotificationDTO } from './models/Notifications.dto';
 import { CreateUserDTO, FilterMethod, LoginDTO } from './models/User.dto';
 import { AppUser, Friend, NotificationsSetting, PublicUser, UserStatus } from './models/User.model';
@@ -129,8 +128,9 @@ export class AppController {
 					<table>
 						<thead>
 							<tr>
-								<td>event</td>
-								<td>message</td>
+								<td>Event</td>
+								<td>Message</td>
+								<td>Timestamp</td>
 							</tr>
 						</thead>
 						<tbody>
@@ -204,7 +204,14 @@ export class AppController {
 			throw new NotFoundException('User not found!');
 		}
 
-		return { id: user.id, username: user.username, token: user.token, avatar: user.avatar, email: user.email };
+		return {
+			id: user.id,
+			username: user.username,
+			token: user.token,
+			avatar: user.avatar,
+			email: user.email,
+			settings: { notifications: user.notifications, lightMode: user.lightMode }
+		};
 	}
 
 	@Patch('/me')
@@ -239,7 +246,7 @@ export class AppController {
 				html: '<span>Thank you for signing up with <strong>ChatterBox</strong>!</span>'
 			});
 
-			return { id, username, token, avatar, email };
+			return { id, username, token, avatar, email, settings: { notifications: 'ALL', lightMode: false } };
 		} catch (e: unknown) {
 			const err = e as SQLError;
 
@@ -275,7 +282,14 @@ export class AppController {
 			throw new BadRequestException('Incorrect username or password!');
 		}
 
-		return { id: user.id, username: user.username, token: user.token, avatar: user.avatar, email: user.email };
+		return {
+			id: user.id,
+			username: user.username,
+			token: user.token,
+			avatar: user.avatar,
+			email: user.email,
+			settings: { notifications: user.notifications, lightMode: user.lightMode }
+		};
 	}
 
 	@Post('/reset-password')
@@ -370,9 +384,9 @@ export class AppController {
 
 		const users = (await this.dbService.getRecipients(messageInfo.channelId)).filter((user) => user.id !== author.id);
 		users.forEach((user) => {
-			if (!this.gatewayService.isOnline(user.id)) {
-				this.dbService.makeMessageNotification(user.id, messageInfo.channelId);
-			} else {
+			this.dbService.makeMessageNotification(user.id, messageInfo.channelId);
+
+			if (this.gatewayService.isOnline(user.id)) {
 				this.gatewayService.notify({ type: 'MESSAGE', message: newMessage }, user.id);
 			}
 		});
@@ -409,11 +423,11 @@ export class AppController {
 
 	@Get('/channels')
 	async getChannels(@Query('token') userToken: string): Promise<Channel[]> {
-		return this.dbService.getChannels(userToken);
+		return this.dbService.getPublicChannels(userToken);
 	}
 
 	@Get('/messages')
-	async getMessages(@Query('token') userToken: string, @Query('channelId', ParseIntPipe) channelId: number): Promise<Message[]> {
+	async getMessages(@Query('token') userToken: string, @Query('channelId', ParseIntPipe) channelId: number): Promise<MessageDTO[]> {
 		const channels = await this.dbService.getChannels(userToken);
 
 		if (!channels.find((channel) => channel.id === channelId)) {

@@ -11,5 +11,6 @@ export async function seed(knex: Knex): Promise<void> {
 	await knex('channels').insert({ name: 'school', type: 'public' });
 	await knex('channels').insert({ name: 'sports', type: 'public' });
 	await knex('channels').insert({ name: 'gaming', type: 'public' });
+	await knex('channels').insert({ name: 'politics', type: 'public' });
 }
 

@@ -8,7 +8,7 @@ import { Message } from 'src/models/Message.model';
 import { FriendNotificationDTO, FriendNotificationType, MessageNotificationDTO } from 'src/models/Notifications.dto';
 import { FriendNotification, MessageNotification } from 'src/models/Notifications.model';
 import { CreateUserDTO, FilterMethod } from '../models/User.dto';
-import { AppUser, Friend, NotificationsSetting, PublicUser, User, UserStatus } from '../models/User.model';
+import { AppUser, Friend, NotificationsSetting, PublicUser, Settings, User, UserStatus } from '../models/User.model';
 
 @Injectable()
 export class DBService {
@@ -58,14 +58,28 @@ export class DBService {
 		return user || null;
 	}
 
-	public async getUserByToken(token: string): Promise<User | null> {
-		const [user] = await this._db<User>('users').where({ token });
+	public async getUserByToken(token: string): Promise<(User & Settings) | null> {
+		const user = await this._db
+			.select('*')
+			.from('users')
+			.innerJoin('settings', function () {
+				this.on('users.id', '=', 'settings.id');
+			})
+			.where({ token })
+			.first();
 
 		return user || null;
 	}
 
-	public async getUserByEmail(email: string): Promise<User | null> {
-		const [user] = await this._db<User>('users').where({ email });
+	public async getUserByEmail(email: string): Promise<(User & Settings) | null> {
+		const [user] = await this._db
+			.select('*')
+			.from('users')
+			.innerJoin('settings', function () {
+				this.on('users.id', '=', 'settings.id');
+			})
+			.where({ email })
+			.first();
 
 		return user || null;
 	}
@@ -99,8 +113,8 @@ export class DBService {
 		return this._db.transaction(async (trx) => {
 			const [id] = await trx.insert(newUser).into('users');
 
-			const [publicChannel] = await trx.select('id').from('channels').where({ type: 'public' });
-			await trx.insert({ userId: id, channelId: publicChannel.id }).into('channel_access');
+			const publicChannels = await trx.select('id').from('channels').where({ type: 'public' });
+			await trx.insert(publicChannels.map((channel) => ({ userId: id, channelId: channel.id }))).into('channel_access');
 
 			return { ...newUser, id };
 		});
@@ -184,8 +198,16 @@ export class DBService {
 		return user;
 	}
 
-	public async getMessages(channelId: number): Promise<Message[]> {
-		return this._db<Message>('messages').where({ channelId });
+	public async getMessages(channelId: number): Promise<MessageDTO[]> {
+		return (
+			await this._db
+				.select('messages.id', 'channelId', 'content', 'createdAt', 'authorId', 'username', 'avatar')
+				.from('messages')
+				.innerJoin('users', function () {
+					this.on('messages.authorId', '=', 'users.id');
+				})
+				.where({ channelId })
+		).map(({ authorId, username, avatar, ...others }) => ({ ...others, author: { id: authorId, username, avatar } }));
 	}
 
 	public async createMessage(author: User, content: string, channelId: number): Promise<MessageDTO> {
@@ -210,6 +232,16 @@ export class DBService {
 
 			return true;
 		});
+	}
+
+	public async getPublicChannels(token: string): Promise<Channel[]> {
+		const [user] = await this._db.select('id').from('users').where({ token });
+
+		if (!user) {
+			throw new BadRequestException('Invalid user token');
+		}
+
+		return this._db.select('id', 'name', 'type').from('channels').where({ type: 'public' });
 	}
 
 	public async getChannels(userToken: string): Promise<Channel[]> {

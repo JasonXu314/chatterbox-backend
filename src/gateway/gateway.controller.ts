@@ -94,9 +94,9 @@ export class GatewayController implements OnGatewayConnection, OnGatewayDisconne
 
 					const users = (await this.dbService.getRecipients(msg.channelId)).filter((user) => user.id !== author.id);
 					users.forEach((user) => {
+						this.dbService.makeMessageNotification(user.id, msg.channelId);
+
 						if (!this.gatewayService.isOnline(user.id)) {
-							this.dbService.makeMessageNotification(user.id, msg.channelId);
-						} else {
 							this.gatewayService.notify({ type: 'MESSAGE', message: newMessage }, user.id);
 						}
 					});
