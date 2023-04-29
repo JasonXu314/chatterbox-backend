@@ -545,6 +545,11 @@ export class AppController {
 		return this.dbService.getNotifications(userToken);
 	}
 
+	@Get('/unreads')
+	async getNumUnreads(@Query('token') token: string): Promise<number> {
+		return (await this.dbService.getNotifications(token)).reduce((total, notif) => ('count' in notif ? total + notif.count : total), 0);
+	}
+
 	@Post('/clear-notification')
 	async clearNotification(@Body(new ValidationPipe({ skipUndefinedProperties: true })) { token, channel, from, to }: ClearNotificationDTO): Promise<void> {
 		if (channel !== undefined) {
