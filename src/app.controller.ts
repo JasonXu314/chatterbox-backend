@@ -42,6 +42,9 @@ export class AppController {
 
 	constructor(private readonly dbService: DBService, private readonly gatewayService: GatewayService, private readonly cdnService: CDNService) {}
 
+	@Post('/keepalive')
+	public keepalive(): void {}
+
 	@Get('/admin-panel')
 	async adminPanel() {
 		return `
