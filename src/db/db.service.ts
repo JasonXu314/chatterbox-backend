@@ -150,7 +150,7 @@ export class DBService {
 
 		if (settings.status !== undefined) {
 			if (settings.notifications !== undefined || settings.lightMode !== undefined) {
-				await this._db('users').update({ status: settings.status });
+				await this._db('users').update({ status: settings.status }).where({ id: user.id });
 			} else {
 				return this._db.transaction(async (trx) => {
 					await trx('users').update({ status: settings.status }).where({ id: user.id });
