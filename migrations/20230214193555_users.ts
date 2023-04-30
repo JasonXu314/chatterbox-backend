@@ -8,7 +8,7 @@ export async function up(knex: Knex): Promise<void> {
 		table.string('salt').notNullable();
 		table.string('token').notNullable().unique();
 		table.string('email').notNullable().unique();
-		table.string('avatar').notNullable().unique();
+		table.string('avatar').notNullable();
 		table.boolean('emailVerified').notNullable().defaultTo(false);
 		table.enum('status', ['ONLINE', 'OFFLINE', 'IDLE', 'DO_NOT_DISTURB', 'INVISIBLE']).notNullable().defaultTo('OFFLINE');
 	});
