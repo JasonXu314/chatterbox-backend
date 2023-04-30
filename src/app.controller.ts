@@ -234,6 +234,7 @@ export class AppController {
 		const updatedUser = await this.dbService.updateUser(token, { status, notifications, lightMode: lightMode === 'true' });
 
 		if (status !== undefined) {
+			this.gatewayService.setStatus(updatedUser.id, updatedUser.status);
 			(await this.dbService.getFriends(updatedUser.id)).forEach((friend) => {
 				if (this.gatewayService.isOnline(friend.id)) {
 					this.gatewayService.notify({ type: 'STATUS_CHANGE', id: updatedUser.id, status: updatedUser.status }, friend.id);
@@ -466,10 +467,9 @@ export class AppController {
 
 			if (friend && user) {
 				await this.dbService.makeFriendRequest(userToken, friendId);
+				await this.dbService.makeFriendNotification(friendId, user.id, friendId);
 
-				if (!this.gatewayService.isOnline(friend.id)) {
-					await this.dbService.makeFriendNotification(friendId, user.id, friendId);
-				} else {
+				if (this.gatewayService.isOnline(friend.id)) {
 					const { id, avatar, username } = user;
 					this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
 				}
@@ -480,10 +480,9 @@ export class AppController {
 
 			if (friend && user) {
 				await this.dbService.makeFriendRequest(userToken, username);
+				await this.dbService.makeFriendNotification(friend.id, user.id, friend.id);
 
-				if (!this.gatewayService.isOnline(friend.id)) {
-					await this.dbService.makeFriendNotification(friend.id, user.id, friend.id);
-				} else {
+				if (this.gatewayService.isOnline(friend.id)) {
 					const { id, avatar, username } = user;
 					this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
 				}

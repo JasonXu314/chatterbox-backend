@@ -69,24 +69,27 @@ export class GatewayService {
 		if (userId !== undefined) {
 			this._socketToUser.delete(socket);
 			this._userToSocket.delete(userId);
-			this._statuses.set(userId, 'OFFLINE');
-			this.dbService.setStatus(userId, 'OFFLINE');
 
-			const msg: WSStatusChangeMessage = {
-				type: 'STATUS_CHANGE',
-				id: userId,
-				status: 'OFFLINE'
-			};
+			if (this._statuses.get(userId) === 'ONLINE') {
+				this._statuses.set(userId, 'OFFLINE');
+				this.dbService.setStatus(userId, 'OFFLINE');
 
-			this.logEvent({ event: 'send', message: msg });
+				const msg: WSStatusChangeMessage = {
+					type: 'STATUS_CHANGE',
+					id: userId,
+					status: 'OFFLINE'
+				};
 
-			this.dbService.getFriends(userId).then((friends) => {
-				friends.forEach((friend) => {
-					if (this._userToSocket.has(friend.id)) {
-						this._userToSocket.get(friend.id)!.send(JSON.stringify(msg));
-					}
+				this.logEvent({ event: 'send', message: msg });
+
+				this.dbService.getFriends(userId).then((friends) => {
+					friends.forEach((friend) => {
+						if (this._userToSocket.has(friend.id)) {
+							this._userToSocket.get(friend.id)!.send(JSON.stringify(msg));
+						}
+					});
 				});
-			});
+			}
 		}
 	}
 
@@ -116,6 +119,10 @@ export class GatewayService {
 
 	public isOnline(id: number): boolean {
 		return this._statuses.get(id) === 'ONLINE';
+	}
+
+	public setStatus(id: number, status: UserStatus): void {
+		this._statuses.set(id, status);
 	}
 }
 
