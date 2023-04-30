@@ -813,7 +813,7 @@ export class DBService {
 		await this._db
 			.delete()
 			.from('friend_notifications')
-			.where(type === 'INCOMING_REQUEST' ? { user: user.id, type, from: id } : { user: user.id, type, to: id });
+			.where(type === 'INCOMING_REQUEST' ? { user: user.id, from: id } : { user: user.id, to: id });
 	}
 
 	public async clearMessageNotification(token: string, channelId: number): Promise<void> {
