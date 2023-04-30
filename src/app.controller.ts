@@ -231,7 +231,17 @@ export class AppController {
 			await this.dbService.updateUsername(token, username);
 		}
 
-		return this.dbService.updateUser(token, { status, notifications, lightMode: lightMode === 'true' });
+		const updatedUser = await this.dbService.updateUser(token, { status, notifications, lightMode: lightMode === 'true' });
+
+		if (status !== undefined) {
+			(await this.dbService.getFriends(updatedUser.id)).forEach((friend) => {
+				if (this.gatewayService.isOnline(friend.id)) {
+					this.gatewayService.notify({ type: 'STATUS_CHANGE', id: updatedUser.id, status: updatedUser.status }, friend.id);
+				}
+			});
+		}
+
+		return updatedUser;
 	}
 
 	@Post('/signup')

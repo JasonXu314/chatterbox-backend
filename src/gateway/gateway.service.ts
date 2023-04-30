@@ -7,8 +7,8 @@ import { InboundWSMessage, OutboundWSMessage, WSStatusChangeMessage } from './me
 export type LogEntry =
 	| { event: 'send'; message: OutboundWSMessage }
 	| { event: 'recv'; message: InboundWSMessage; timestamp: Date }
-	| { event: 'close'; message: string, timestamp: Date }
-	| { event: 'kill'; message: string, timestamp: Date }
+	| { event: 'close'; message: string; timestamp: Date }
+	| { event: 'kill'; message: string; timestamp: Date }
 	| { event: 'error'; message: string }
 	| { event: 'connected'; message: string }
 	| { event: 'opened'; message: string };
@@ -28,24 +28,29 @@ export class GatewayService {
 	public addSocket(socket: WebSocket, user: User): void {
 		this._socketToUser.set(socket, user.id);
 		this._userToSocket.set(user.id, socket);
-		this._statuses.set(user.id, 'ONLINE');
-		this.dbService.setStatus(user.id, 'ONLINE');
 
-		const msg: WSStatusChangeMessage = {
-			type: 'STATUS_CHANGE',
-			id: user.id,
-			status: 'ONLINE'
-		};
+		if (user.status === 'OFFLINE') {
+			this._statuses.set(user.id, 'ONLINE');
+			this.dbService.setStatus(user.id, 'ONLINE');
 
-		this.logEvent({ event: 'send', message: msg });
+			const msg: WSStatusChangeMessage = {
+				type: 'STATUS_CHANGE',
+				id: user.id,
+				status: 'ONLINE'
+			};
 
-		this.dbService.getFriends(user.token).then((friends) => {
-			friends.forEach((friend) => {
-				if (this._userToSocket.has(friend.id)) {
-					this._userToSocket.get(friend.id)!.send(JSON.stringify(msg));
-				}
+			this.logEvent({ event: 'send', message: msg });
+
+			this.dbService.getFriends(user.token).then((friends) => {
+				friends.forEach((friend) => {
+					if (this._userToSocket.has(friend.id)) {
+						this._userToSocket.get(friend.id)!.send(JSON.stringify(msg));
+					}
+				});
 			});
-		});
+		} else {
+			this._statuses.set(user.id, user.status);
+		}
 	}
 
 	public async getUser(socket: WebSocket): Promise<User | null> {
