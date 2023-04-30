@@ -1,6 +1,7 @@
 import { IsDefined, IsInt, IsString } from 'class-validator';
 import { Channel } from './Channel.model';
 import { PublicUser } from './User.model';
+import { forceInit } from './utils';
 
 export type FriendNotificationType = 'INCOMING_REQUEST' | 'NEW_FRIEND';
 
@@ -18,15 +19,15 @@ export class MessageNotificationDTO {
 export class ClearNotificationDTO {
 	@IsDefined()
 	@IsString()
-	token: string = '';
+	token: string = forceInit();
 
 	@IsInt()
-	channel: number = -1;
+	channel: number = forceInit();
 
 	@IsInt()
-	from: number = -1;
+	from: number = forceInit();
 
 	@IsInt()
-	to: number = -1;
+	to: number = forceInit();
 }
 

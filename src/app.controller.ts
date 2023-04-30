@@ -237,7 +237,10 @@ export class AppController {
 			this.gatewayService.setStatus(updatedUser.id, updatedUser.status);
 			(await this.dbService.getFriends(updatedUser.id)).forEach((friend) => {
 				if (this.gatewayService.isOnline(friend.id)) {
-					this.gatewayService.notify({ type: 'STATUS_CHANGE', id: updatedUser.id, status: updatedUser.status }, friend.id);
+					this.gatewayService.notify(
+						{ type: 'STATUS_CHANGE', id: updatedUser.id, status: updatedUser.status === 'INVISIBLE' ? 'OFFLINE' : updatedUser.status },
+						friend.id
+					);
 				}
 			});
 		}
