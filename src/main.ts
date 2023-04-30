@@ -12,7 +12,7 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 
 	setInterval(() => {
-		axios.post('/keepalive');
+		axios.post(`http://localhost:${process.env.PORT}/keepalive`);
 	}, 20_000);
 
 	app.useWebSocketAdapter(new WsAdapter(app));
