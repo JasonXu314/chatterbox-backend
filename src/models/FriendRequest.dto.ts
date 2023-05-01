@@ -13,7 +13,7 @@ export class FriendRequestDTO {
 	token: string = forceInit();
 
 	@IsInt()
-	friendId?: number;
+	id?: number;
 
 	@IsString()
 	username?: string;

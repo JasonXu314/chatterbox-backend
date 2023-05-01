@@ -470,10 +470,12 @@ export class AppController {
 	}
 
 	@Post('/request-friend')
-	async requestFriend(@Body(new ValidationPipe({ skipUndefinedProperties: true })) { token, friendId, username }: FriendRequestDTO): Promise<void> {
+	async requestFriend(@Body(new ValidationPipe({ skipUndefinedProperties: true })) { token, id: friendId, username }: FriendRequestDTO): Promise<void> {
 		if (friendId !== undefined) {
 			const friend = await this.dbService.getUserById(friendId),
 				user = await this.dbService.getUserByToken(token);
+
+			console.log(`User ${token} requesting friend ${friendId}`, friend, user);
 
 			if (friend && user) {
 				await this.dbService.makeFriendRequest(token, friendId);
@@ -490,6 +492,8 @@ export class AppController {
 		} else if (username) {
 			const friend = await this.dbService.getUserByName(username),
 				user = await this.dbService.getUserByToken(token);
+
+			console.log(`User ${token} requesting friend ${username}`, friend, user);
 
 			if (friend && user) {
 				await this.dbService.makeFriendRequest(token, username);

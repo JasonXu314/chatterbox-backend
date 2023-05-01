@@ -30,11 +30,22 @@ export class DBService {
 		});
 	}
 
-	public async getUsers(id?: number | undefined): Promise<User[]> {
+	public async getUsers(id?: number | undefined): Promise<(User & Settings)[]> {
 		if (id) {
-			return this._db<User>('users').where({ id });
+			return this._db
+				.select('*')
+				.from('users')
+				.innerJoin('settings', function () {
+					this.on('users.id', '=', 'settings.id');
+				})
+				.whereRaw(`users.id = ${id}`);
 		} else {
-			return this._db<User>('users');
+			return this._db
+				.select('*')
+				.from('users')
+				.innerJoin('settings', function () {
+					this.on('users.id', '=', 'settings.id');
+				});
 		}
 	}
 
@@ -388,7 +399,7 @@ export class DBService {
 			const username = idOrUsername;
 
 			if (user.username === username) {
-				throw new BadRequestException('Requested friend is reqesting user');
+				throw new BadRequestException('You cannot friend yourself');
 			}
 
 			const [friend] = await this._db.select('id').from('users').where({ username });
@@ -406,7 +417,7 @@ export class DBService {
 			const friendships = await this._db.select('*').from('friend').where({ sender: user.id, recipient: friend.id });
 
 			if (friendships.length > 0) {
-				throw new BadRequestException('Requesting user is already friends with requested friend');
+				throw new BadRequestException('You are already friends with that user');
 			}
 
 			return this._db.transaction(async (trx) => {
@@ -416,7 +427,7 @@ export class DBService {
 			const friendId = idOrUsername;
 
 			if (user.id === friendId) {
-				throw new BadRequestException('Requested friend is reqesting user');
+				throw new BadRequestException('You cannot friend yourself');
 			}
 
 			const [friend] = await this._db.select('id').from('users').where({ id: friendId });
@@ -434,7 +445,7 @@ export class DBService {
 			const friendships = await this._db.select('*').from('friend').where({ sender: user.id, recipient: friendId });
 
 			if (friendships.length > 0) {
-				throw new BadRequestException('Requesting user is already friends with requested friend');
+				throw new BadRequestException('You are already friends with that user');
 			}
 
 			return this._db.transaction(async (trx) => {
@@ -451,7 +462,7 @@ export class DBService {
 		}
 
 		if (user.id === friendId) {
-			throw new BadRequestException('Requested friend is reqesting user');
+			throw new BadRequestException('You cannot friend yourself');
 		}
 
 		const [request] = await this._db.select('fromId', 'toId', 'requestedAt').from('friend_request').where({ fromId: friendId, toId: user.id });
@@ -485,7 +496,7 @@ export class DBService {
 		}
 
 		if (user.id === rejectedId) {
-			throw new BadRequestException('Requested friend is reqesting user');
+			throw new BadRequestException('You cannot (un)friend yourself');
 		}
 
 		const [request] = await this._db.select('fromId', 'toId', 'requestedAt').from('friend_request').where({ fromId: rejectedId, toId: user.id });
@@ -788,7 +799,11 @@ export class DBService {
 	public async getNotifications(token: string): Promise<(FriendNotificationDTO | MessageNotificationDTO)[]> {
 		const [user] = await this._db.select('id').from('users').where({ token });
 
+		this._logger.log('Got user');
+		this._logger.log(user);
+
 		const friendNotifications = await this._db.select('user', 'from', 'to').from('friend_notifications').where({ user: user.id });
+		this._logger.log('Got friend notifications');
 		const friendNotifDTOs = (
 			await Promise.all(
 				friendNotifications.map<Promise<FriendNotificationDTO | null>>(async ({ user, from, to }) => {
@@ -825,6 +840,7 @@ export class DBService {
 				this.on('message_notifications.channelId', '=', 'channels.id');
 			})
 			.where({ user: user.id });
+		this._logger.log('Got message notifications');
 
 		return [...friendNotifDTOs, ...messageNotifications.map(({ id, name, type, count }) => ({ channel: { id, name, type }, count }))];
 	}
