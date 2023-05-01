@@ -80,12 +80,13 @@ export class AppController {
 								<td>avatar</td>
 								<td>status</td>
 								<td>token</td>
+								<td>notifications</td>
 							</tr>
 						</thead>
 						<tbody>
 							${(await this.dbService.getUsers())
 								.map(
-									({ id, username, email, avatar, status, token }) => `
+									({ id, username, email, avatar, status, token, notifications }) => `
 								<tr>
 									<td>${id}</td>
 									<td>${username}</td>
@@ -93,6 +94,7 @@ export class AppController {
 									<td>${avatar}</td>
 									<td>${status}</td>
 									<td>${token}</td>
+									<td>${notifications}</td>
 								</tr>`
 								)
 								.join('')}
