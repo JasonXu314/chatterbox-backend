@@ -411,7 +411,7 @@ export class AppController {
 				this.dbService.makeMessageNotification(user.id, messageInfo.channelId);
 			}
 
-			if (this.gatewayService.isOnline(user.id)) {
+			if (this.gatewayService.isOnline(user.id) || (fullUser.status === 'DO_NOT_DISTURB' && this.gatewayService.hasSocket(user.id))) {
 				this.gatewayService.notify({ type: 'MESSAGE', message: newMessage }, user.id);
 			}
 		});

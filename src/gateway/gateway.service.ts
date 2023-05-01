@@ -124,5 +124,9 @@ export class GatewayService {
 	public setStatus(id: number, status: UserStatus): void {
 		this._statuses.set(id, status);
 	}
+
+	public hasSocket(id: number): boolean {
+		return this._userToSocket.has(id);
+	}
 }
 
