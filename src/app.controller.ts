@@ -475,8 +475,6 @@ export class AppController {
 			const friend = await this.dbService.getUserById(friendId),
 				user = await this.dbService.getUserByToken(token);
 
-			console.log(`User ${token} requesting friend ${friendId}`, friend, user);
-
 			if (friend && user) {
 				await this.dbService.makeFriendRequest(token, friendId);
 
@@ -488,12 +486,16 @@ export class AppController {
 					const { id, avatar, username } = user;
 					this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
 				}
+			} else {
+				if (!user) {
+					throw new BadRequestException('Invalid token');
+				} else if (!friend) {
+					throw new BadRequestException('No user found with that id');
+				}
 			}
 		} else if (username) {
 			const friend = await this.dbService.getUserByName(username),
 				user = await this.dbService.getUserByToken(token);
-
-			console.log(`User ${token} requesting friend ${username}`, friend, user);
 
 			if (friend && user) {
 				await this.dbService.makeFriendRequest(token, username);
@@ -505,6 +507,12 @@ export class AppController {
 				if (this.gatewayService.isOnline(friend.id)) {
 					const { id, avatar, username } = user;
 					this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
+				}
+			} else {
+				if (!user) {
+					throw new BadRequestException('Invalid token');
+				} else if (!friend) {
+					throw new BadRequestException('No user found with that username');
 				}
 			}
 		} else {
