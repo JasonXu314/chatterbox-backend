@@ -482,11 +482,11 @@ export class AppController {
 
 				if (friend.notifications === 'ALL' || friend.notifications === 'FRIEND_REQ') {
 					await this.dbService.makeFriendNotification(friendId, user.id, friendId);
-				}
 
-				if (this.gatewayService.isOnline(friend.id)) {
-					const { id, avatar, username } = user;
-					this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
+					if (this.gatewayService.isOnline(friend.id)) {
+						const { id, avatar, username } = user;
+						this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
+					}
 				}
 			} else {
 				if (!user) {
@@ -504,11 +504,11 @@ export class AppController {
 
 				if (friend.notifications === 'ALL' || friend.notifications === 'FRIEND_REQ') {
 					await this.dbService.makeFriendNotification(friend.id, user.id, friend.id);
-				}
 
-				if (this.gatewayService.isOnline(friend.id)) {
-					const { id, avatar, username } = user;
-					this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
+					if (this.gatewayService.isOnline(friend.id)) {
+						const { id, avatar, username } = user;
+						this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
+					}
 				}
 			} else {
 				if (!user) {

@@ -398,10 +398,6 @@ export class DBService {
 		if (typeof idOrUsername === 'string') {
 			const username = idOrUsername;
 
-			this._logger.log('friend by username');
-			this._logger.log(username);
-			this._logger.log(user.username);
-
 			if (user.username === username) {
 				throw new BadRequestException('You cannot friend yourself');
 			}
@@ -429,10 +425,6 @@ export class DBService {
 			});
 		} else {
 			const friendId = idOrUsername;
-
-			this._logger.log('friend by id');
-			this._logger.log(friendId);
-			this._logger.log(user.id);
 
 			if (user.id === friendId) {
 				throw new BadRequestException('You cannot friend yourself');
