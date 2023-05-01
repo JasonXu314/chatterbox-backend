@@ -407,7 +407,7 @@ export class AppController {
 		users.forEach(async (user) => {
 			const fullUser = (await this.dbService.getUserById(user.id))!;
 
-			if (fullUser.notifications === 'ALL' || fullUser.notifications === 'MESSAGES') {
+			if ((fullUser.notifications === 'ALL' || fullUser.notifications === 'MESSAGES') && fullUser.status !== 'DO_NOT_DISTURB') {
 				this.dbService.makeMessageNotification(user.id, messageInfo.channelId);
 			}
 
@@ -482,11 +482,11 @@ export class AppController {
 
 				if (friend.notifications === 'ALL' || friend.notifications === 'FRIEND_REQ') {
 					await this.dbService.makeFriendNotification(friendId, user.id, friendId);
+				}
 
-					if (this.gatewayService.isOnline(friend.id)) {
-						const { id, avatar, username } = user;
-						this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
-					}
+				if (this.gatewayService.isOnline(friend.id) || (friend.status === 'DO_NOT_DISTURB' && this.gatewayService.hasSocket(user.id))) {
+					const { id, avatar, username } = user;
+					this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
 				}
 			} else {
 				if (!user) {
@@ -504,11 +504,11 @@ export class AppController {
 
 				if (friend.notifications === 'ALL' || friend.notifications === 'FRIEND_REQ') {
 					await this.dbService.makeFriendNotification(friend.id, user.id, friend.id);
+				}
 
-					if (this.gatewayService.isOnline(friend.id)) {
-						const { id, avatar, username } = user;
-						this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
-					}
+				if (this.gatewayService.isOnline(friend.id) || (friend.status === 'DO_NOT_DISTURB' && this.gatewayService.hasSocket(user.id))) {
+					const { id, avatar, username } = user;
+					this.gatewayService.notify({ type: 'FRIEND_REQ', from: { id, avatar, username } }, friend.id);
 				}
 			} else {
 				if (!user) {
