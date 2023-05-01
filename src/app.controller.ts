@@ -21,7 +21,7 @@ import { CDNService } from './cdn/cdn.service';
 import { DBService } from './db/db.service';
 import { GatewayService } from './gateway/gateway.service';
 import { Channel } from './models/Channel.model';
-import { FriendRequestResponseDTO } from './models/FriendRequest.dto';
+import { FriendRequestDTO, FriendRequestResponseDTO } from './models/FriendRequest.dto';
 import { CreateMessageDTO, MessageDTO } from './models/Message.dto';
 import { ClearNotificationDTO, FriendNotificationDTO, MessageNotificationDTO } from './models/Notifications.dto';
 import { CreateUserDTO, FilterMethod, LoginDTO } from './models/User.dto';
@@ -470,13 +470,13 @@ export class AppController {
 	}
 
 	@Post('/request-friend')
-	async requestFriend(@Body('token') userToken: string, @Body('id', ParseIntPipe) friendId: number, @Body('username') username: string): Promise<void> {
+	async requestFriend(@Body(new ValidationPipe({ skipUndefinedProperties: true })) { token, friendId, username }: FriendRequestDTO): Promise<void> {
 		if (friendId !== undefined) {
 			const friend = await this.dbService.getUserById(friendId),
-				user = await this.dbService.getUserByToken(userToken);
+				user = await this.dbService.getUserByToken(token);
 
 			if (friend && user) {
-				await this.dbService.makeFriendRequest(userToken, friendId);
+				await this.dbService.makeFriendRequest(token, friendId);
 
 				if (friend.notifications === 'ALL' || friend.notifications === 'FRIEND_REQ') {
 					await this.dbService.makeFriendNotification(friendId, user.id, friendId);
@@ -489,10 +489,10 @@ export class AppController {
 			}
 		} else if (username) {
 			const friend = await this.dbService.getUserByName(username),
-				user = await this.dbService.getUserByToken(userToken);
+				user = await this.dbService.getUserByToken(token);
 
 			if (friend && user) {
-				await this.dbService.makeFriendRequest(userToken, username);
+				await this.dbService.makeFriendRequest(token, username);
 
 				if (friend.notifications === 'ALL' || friend.notifications === 'FRIEND_REQ') {
 					await this.dbService.makeFriendNotification(friend.id, user.id, friend.id);

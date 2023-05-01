@@ -53,7 +53,7 @@ export class DBService {
 			.innerJoin('settings', function () {
 				this.on('users.id', '=', 'settings.id');
 			})
-			.where({ id })
+			.whereRaw(`users.id = ${id}`)
 			.first();
 
 		return user || null;
