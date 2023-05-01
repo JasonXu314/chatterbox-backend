@@ -409,10 +409,10 @@ export class AppController {
 
 			if (fullUser.notifications === 'ALL' || fullUser.notifications === 'MESSAGES') {
 				this.dbService.makeMessageNotification(user.id, messageInfo.channelId);
+			}
 
-				if (this.gatewayService.isOnline(user.id)) {
-					this.gatewayService.notify({ type: 'MESSAGE', message: newMessage }, user.id);
-				}
+			if (this.gatewayService.isOnline(user.id)) {
+				this.gatewayService.notify({ type: 'MESSAGE', message: newMessage }, user.id);
 			}
 		});
 
