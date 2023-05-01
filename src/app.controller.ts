@@ -402,11 +402,15 @@ export class AppController {
 		const newMessage = await this.dbService.createMessage(author, messageInfo.content, messageInfo.channelId);
 
 		const users = (await this.dbService.getRecipients(messageInfo.channelId)).filter((user) => user.id !== author.id);
-		users.forEach((user) => {
-			this.dbService.makeMessageNotification(user.id, messageInfo.channelId);
+		users.forEach(async (user) => {
+			const fullUser = (await this.dbService.getUserById(user.id))!;
 
-			if (this.gatewayService.isOnline(user.id)) {
-				this.gatewayService.notify({ type: 'MESSAGE', message: newMessage }, user.id);
+			if (fullUser.notifications === 'ALL' || fullUser.notifications === 'MESSAGES') {
+				this.dbService.makeMessageNotification(user.id, messageInfo.channelId);
+
+				if (this.gatewayService.isOnline(user.id)) {
+					this.gatewayService.notify({ type: 'MESSAGE', message: newMessage }, user.id);
+				}
 			}
 		});
 
@@ -473,7 +477,10 @@ export class AppController {
 
 			if (friend && user) {
 				await this.dbService.makeFriendRequest(userToken, friendId);
-				await this.dbService.makeFriendNotification(friendId, user.id, friendId);
+
+				if (friend.notifications === 'ALL' || friend.notifications === 'FRIEND_REQ') {
+					await this.dbService.makeFriendNotification(friendId, user.id, friendId);
+				}
 
 				if (this.gatewayService.isOnline(friend.id)) {
 					const { id, avatar, username } = user;
@@ -486,7 +493,10 @@ export class AppController {
 
 			if (friend && user) {
 				await this.dbService.makeFriendRequest(userToken, username);
-				await this.dbService.makeFriendNotification(friend.id, user.id, friend.id);
+
+				if (friend.notifications === 'ALL' || friend.notifications === 'FRIEND_REQ') {
+					await this.dbService.makeFriendNotification(friend.id, user.id, friend.id);
+				}
 
 				if (this.gatewayService.isOnline(friend.id)) {
 					const { id, avatar, username } = user;
@@ -501,12 +511,13 @@ export class AppController {
 	@Post('/accept-request')
 	async accept(@Body('token') userToken: string, @Body('id') friendId: number): Promise<Friend> {
 		const newFriend = await this.dbService.acceptFriendRequest(userToken, friendId),
+			friendUser = (await this.dbService.getUserById(newFriend.id))!,
 			user = (await this.dbService.getUserByToken(userToken))!;
 
-		if (this.gatewayService.isOnline(newFriend.id)) {
+		if (this.gatewayService.isOnline(newFriend.id) && (friendUser.notifications === 'ALL' || friendUser.notifications === 'FRIEND_REQ')) {
 			const userAsFriend = (await this.dbService.getFriends(newFriend.id)).filter((friend) => friend.id === user.id)[0];
 			this.gatewayService.notify({ type: 'NEW_FRIEND', friend: userAsFriend }, newFriend.id);
-		} else {
+		} else if (friendUser.notifications === 'ALL' || friendUser.notifications === 'FRIEND_REQ') {
 			this.dbService.makeFriendNotification(newFriend.id, newFriend.id, user.id);
 		}
 

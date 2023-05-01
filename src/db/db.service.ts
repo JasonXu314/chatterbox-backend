@@ -46,14 +46,28 @@ export class DBService {
 		}
 	}
 
-	public async getUserById(id: number): Promise<User | null> {
-		const [user] = await this._db<User>('users').where({ id });
+	public async getUserById(id: number): Promise<(User & Settings) | null> {
+		const user = await this._db
+			.select('*')
+			.from('users')
+			.innerJoin('settings', function () {
+				this.on('users.id', '=', 'settings.id');
+			})
+			.where({ id })
+			.first();
 
 		return user || null;
 	}
 
-	public async getUserByName(username: string): Promise<User | null> {
-		const [user] = await this._db<User>('users').where({ username });
+	public async getUserByName(username: string): Promise<(User & Settings) | null> {
+		const user = await this._db
+			.select('*')
+			.from('users')
+			.innerJoin('settings', function () {
+				this.on('users.id', '=', 'settings.id');
+			})
+			.where({ username })
+			.first();
 
 		return user || null;
 	}
@@ -389,6 +403,12 @@ export class DBService {
 				throw new BadRequestException('There already exists a friend request to the target user.');
 			}
 
+			const friendships = await this._db.select('*').from('friend').where({ sender: user.id, recipient: friend.id });
+
+			if (friendships.length > 0) {
+				throw new BadRequestException('Requesting user is already friends with requested friend');
+			}
+
 			return this._db.transaction(async (trx) => {
 				await trx<{ fromId: number; toId: number }>('friend_request').insert({ fromId: user.id, toId: friend.id });
 			});
@@ -409,6 +429,12 @@ export class DBService {
 
 			if (requests.length > 0) {
 				throw new BadRequestException('There already exists a friend request to the target user.');
+			}
+
+			const friendships = await this._db.select('*').from('friend').where({ sender: user.id, recipient: friendId });
+
+			if (friendships.length > 0) {
+				throw new BadRequestException('Requesting user is already friends with requested friend');
 			}
 
 			return this._db.transaction(async (trx) => {
