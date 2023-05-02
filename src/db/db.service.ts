@@ -242,6 +242,7 @@ export class DBService {
 					this.on('messages.authorId', '=', 'users.id');
 				})
 				.where({ channelId })
+				.orderBy('messages.id', 'asc')
 		).map(({ authorId, username, avatar, ...others }) => ({ ...others, author: { id: authorId, username, avatar } }));
 	}
 
