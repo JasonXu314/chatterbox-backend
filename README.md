@@ -1,8 +1,27 @@
-## Installation
+## Installation & Local Testing
+
+### Requirements:
+
+-   Node.js (https://nodejs.org/en) and Yarn (https://classic.yarnpkg.com/lang/en/)
+-   MySQL local server (https://dev.mysql.com/downloads/)
+
+### Running
+
+Run
 
 ```bash
 $ yarn install
 ```
+
+to install dependencies, and
+
+```bash
+$ yarn dev
+```
+
+to run the local server
+
+**_Make sure your MySQL server is running on port 3306 before running server_**
 
 ## Running the app
 
